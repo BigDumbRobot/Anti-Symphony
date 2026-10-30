@@ -1,0 +1,3 @@
+#!/bin/zsh
+# Add a label to the capture log, e.g.: ./mark main out level up
+echo "########## MARK: $*" >> "${0:A:h}/usbspy.log"

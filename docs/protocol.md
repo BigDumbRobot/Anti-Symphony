@@ -1,0 +1,107 @@
+# Symphony I/O Mk1 USB control protocol
+
+Recovered 2026-10-30 from Apogee's `symphonyIOUSBDaemon` 1.9.33 (unoptimised arm64 build with symbols; class `SymphonyIOControl`), plus a capture of its startup traffic. Raw extraction: `tools/capture/request-map-raw.txt` (regenerate with `tools/capture/extract_requests.py`).
+
+## Transport
+
+Every control is a vendor control transfer on endpoint 0, device recipient:
+
+| | bmRequestType | bRequest | wValue | wIndex | data |
+|---|---|---|---|---|---|
+| write | `0x40` | command | `addr >> 16` | `addr & 0xFFFF` | `len` bytes host → device |
+| read | `0xC0` | command | `addr >> 16` | `addr & 0xFFFF` | `len` bytes device → host |
+
+`addr` is a 32-bit value per command (below). Apogee retries a failed request twice with a 1 ms pause, and serialises all requests behind one lock.
+
+## Commands
+
+`ch` = channel (0-based), `hp` = headphone index, `mix` = mixer index, `in` = mixer input. "IO bit" = `0x80000000` set for outputs, clear for inputs.
+
+### Monitoring
+| cmd | addr | len | meaning |
+|---|---|---|---|
+| 0x25 | 0 | 1 | speaker output mode (r/w) |
+| 0x26 | 0 | 1 | speaker (main) output volume, signed byte (r/w) |
+| 0x27 | 0 | 1 | speaker output mute, 0/1 (r/w) |
+| 0x23 | hp | 1 | headphone volume, signed byte (r/w) |
+| 0x24 | hp | 1 | headphone mute, 0/1 (r/w) |
+| 0xE7 | out | 1 | dim, 0/1 (r/w). out: monitor output enum 1 → 2, 2 → 0, 3 → 1 |
+| 0xE8 | out | 1 | sum to mono, 0/1 (r/w), same index map as dim |
+| 0xE9 | 0 | 1 | active speaker set (r/w) |
+| 0x54 | 0 | 1 | headphone assignment (r/w) |
+| 0x2A | 0 | 1 | front panel output selection (r/w) |
+
+### Inputs (mic pre)
+| cmd | addr | len | meaning |
+|---|---|---|---|
+| 0xC3 | ch | 1 | mic gain, signed byte (r/w) |
+| 0xC4 | ch | 1 | instrument gain, signed byte (r/w) |
+| 0xC5 | ch | 1 | phase invert (r/w) |
+| 0xC6 | ch | 1 | 48V phantom power (r/w) |
+| 0xC7 | ch | 1 | mic pre group (r/w) |
+| 0xC8 | ch | 1 | mic pre insert (r/w) |
+| 0xC9 | ch | 1 | mic pre insert enable (r/w) |
+| 0xCA | ch | 1 | high-pass filter (r/w) |
+
+### Analog / digital I/O
+| cmd | addr | len | meaning |
+|---|---|---|---|
+| 0x20 | IO bit \| (ch & 0x7FFF) << 16 \| type (read); IO bit \| ch (write) | 2 | analog I/O type / reference level. Byte 1 = trim, 0x7F reserved |
+| 0x60 | IO bit \| ch | 1 | current analog I/O type (read) |
+| 0x21 | IO bit \| ch | 1 | digital reference level (r/w) |
+| 0x22 | ch | 1 | Soft Limit (r/w) |
+| 0x34 | board | 1 | optical is S/PDIF (r/w) |
+| 0x35 | board | 1 | S/PDIF coax replaces input (r/w) |
+| 0x36 | board | 1 | S/PDIF coax mirrors output (r/w) |
+| 0x32 | bank | 1 | device channel bank (r/w) |
+
+### Routing and mixer
+| cmd | addr | len | meaning |
+|---|---|---|---|
+| 0x31 | 0 | 2·n | set routes: pairs of (destination, source) bytes |
+| 0x31 | dest | 1 | read the source for one destination |
+| 0xC2 | 0 | 0 | reset routing (write, no data) |
+| 0xB0 | mix << 16 \| in | 1 | mixer fader: byte = max(0, dB + 48) |
+| 0xB1 | mix << 16 \| in | 1 | mixer pan |
+| 0xB2 | mix << 16 \| in | 1 | mixer solo |
+| 0xB3 | mix << 16 \| in | 1 | mixer mute |
+| 0x55 | 0 | 1 | mixer visibility mask |
+
+### Clock
+| cmd | addr | len | meaning |
+|---|---|---|---|
+| 0x03 | 0 | 1 | sample rate code (write): 48k=0, 96k=1, 192k=2, 44.1k=4, 88.2k=5, 176.4k=6 |
+| 0x50 | 0 | 4 | clock mode: source, flags, AES/opt board index (r/w) |
+| 0x51 | 0 | 5 | external clock status (read) |
+| 0x52 | 0 | 2 | I/O board digital input status (read) |
+| 0x53 | 0 | 1 | Pro Tools star-sync mode (r/w) |
+
+### Status, metering, identity
+| cmd | addr | len | meaning |
+|---|---|---|---|
+| 0xFF | 0 | 4 | system ready (read; Apogee polls until ready) |
+| 0x28 | 1 | 12 | parameter updates: front-panel changes (polled about every 1.3 s). Bytes 0–3 big-endian sample rate (`0000BB80` = 48000) |
+| 0x2B | 0 | 1 | pop-up needs update (read) |
+| 0x30 | group | 0x40 or 0x20 | TDM meter data (read) |
+| 0x10 | n | 1 | front panel metering mode (write) |
+| 0x11 / 0x12 | 0 | 1 | front panel peak / over hold mode (write) |
+| 0x13 | 0 | 1 | clear front panel meters (write) |
+| 0xA0 | type | 3 | firmware version (read) |
+| 0xA1 | 0 / 1 | 1 | primary / secondary I/O board type (read) |
+| 0xC0 | n | 8 | unique ID (read) |
+| 0x33 | 0 | 1 | identify (blink) (write) |
+| 0x37 | 0 | 1 | prefix (r/w) |
+| 0xCD | 0x1234 | 1 | "daemon disabled from firmware" (r/w; Apogee polls the read) |
+| 0xDB | 0 | 1 | reset request (read) / clear (write) |
+| 0xDD | 0 | 1 | preference load lock (r/w) |
+| 0xDE | 0 | 4 | preference settings (read) |
+
+## Never send
+
+DFU, flash and reset commands live in `ApoUSB` / `XMOSUSB` (`EnterDFU`, `EraseFirmware`, `WriteDFUBlock`, `VendorSpecificReset`, `VendorSpecificRevertNormal`, `VendorSpecificSetRevertId`, `VendorSpecificFinalizeBootPartition`, `ResetFactorySettingsNVRAM`, `XMOSResetIntoDFU`). Their request numbers are not on this page on purpose. Our tool refuses any command not listed above. The functional-test commands (0xE5, 0xE6) are also excluded.
+
+## Still to work out
+
+- Units for the signed volume and gain bytes (live reads will show).
+- The 12-byte parameter-update layout beyond the sample rate.
+- Enum values: speaker output mode, clock source, analog I/O type, board types, routing source and destination IDs.

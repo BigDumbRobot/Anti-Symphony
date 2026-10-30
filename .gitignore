@@ -1,0 +1,17 @@
+.DS_Store
+
+# Build outputs
+tools/usbdesc/usbdesc
+tools/symctl/symctl
+tools/capture/usbspy.dylib
+build/
+
+# Apogee's binary and anything derived from it in bulk: regenerate locally
+# (see tools/capture/README in the main README)
+tools/capture/daemon-copy/
+tools/capture/daemon-arm64.s
+
+# Capture logs (large); the useful startup part is kept in apogee-startup-sequence.log
+tools/capture/usbspy*.log
+tools/capture/daemon-stdout.log
+tools/capture/daemon.pid
