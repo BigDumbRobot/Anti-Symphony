@@ -14,6 +14,9 @@
 //
 // Runs as a user LaunchAgent (no root needed). Logs to stderr; launchd sends that to
 // ~/Library/Logs/symphonyd.log. -v also logs every status change the box reports.
+//
+// It also serves every setting over OSC (docs/osc.md): by default on 127.0.0.1:7100, so only
+// this Mac can reach it. --osc-bind 0.0.0.0 opens it to the network (e.g. Companion on another machine).
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,6 +27,7 @@
 #include <IOKit/IOMessage.h>
 #include <IOKit/pwr_mgt/IOPMLib.h>
 #include "symusb.h"
+#include "control.h"
 
 #define POLL_SECONDS 1.3          // Apogee polls parameter updates about this often
 #define MAX_UNITS 4
@@ -57,7 +61,7 @@ static double now(void) {
     return ts.tv_sec + ts.tv_nsec / 1e9;
 }
 
-static void logf_(const char *fmt, ...) {
+void logf_(const char *fmt, ...) {
     char stamp[32];
     time_t t = time(NULL);
     strftime(stamp, sizeof stamp, "%Y-%m-%d %H:%M:%S", localtime(&t));
@@ -85,6 +89,7 @@ static uint32_t locationOf(io_service_t svc) {
 }
 
 static void closeDev(Unit *u) {
+    ctl_detach(u->dev);
     sym_close(u->dev);
     u->dev = NULL;
 }
@@ -108,6 +113,9 @@ static void announce(Unit *u) {
 static void sendHostReady(Unit *u) {
     if (sym_set_host_ready(u->dev, true) == 0) {
         LOG(u, "host ready sent");
+        uint8_t board = 0;
+        sym_read(u->dev, 0xA1, 0, &board, 1);
+        ctl_attach(u->dev, board);
         u->state = ACTIVE;
         u->failures = 0;
         u->haveParams = false;
@@ -183,6 +191,7 @@ static void onTimer(CFRunLoopTimerRef t, void *info) {
     if (gAsleep) return;
     for (int i = 0; i < MAX_UNITS; i++)
         if (gUnits[i].used) pollUnit(&gUnits[i]);
+    ctl_tick();
 }
 
 static void onAttach(void *refcon, io_iterator_t it) {
@@ -256,12 +265,17 @@ static void onSignal(int sig) {
 }
 
 int main(int argc, char **argv) {
+    const char *oscBind = "127.0.0.1";
+    int oscPort = 7100;
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-v")) gVerbose = true;
-        else { fprintf(stderr, "usage: symphonyd [-v]\n"); return 2; }
+        else if (!strcmp(argv[i], "--osc-bind") && i + 1 < argc) oscBind = argv[++i];
+        else if (!strcmp(argv[i], "--osc-port") && i + 1 < argc) oscPort = atoi(argv[++i]);
+        else { fprintf(stderr, "usage: symphonyd [-v] [--osc-bind <ipv4>] [--osc-port <port>]\n"); return 2; }
     }
     setvbuf(stderr, NULL, _IOLBF, 0);
     logf_("symphonyd starting");
+    ctl_init(oscBind, oscPort);   // keeps the handshake running even if OSC can't start
 
     // USB attach / detach. The first call to each handler arms the notification and picks up
     // anything already connected.

@@ -8,8 +8,10 @@ all: build/symphonyd build/symctl build/usbdesc build/avbbridge
 build:
 	mkdir -p build
 
-build/symphonyd: symphonyd/symphonyd.c lib/symusb.c lib/symusb.h | build
-	$(CC) $(CFLAGS) symphonyd/symphonyd.c lib/symusb.c -o $@ $(LDLIBS)
+SYMPHONYD_SRC = symphonyd/symphonyd.c symphonyd/control.c symphonyd/osc.c lib/symusb.c
+
+build/symphonyd: $(SYMPHONYD_SRC) symphonyd/control.h symphonyd/osc.h lib/symusb.h | build
+	$(CC) $(CFLAGS) $(SYMPHONYD_SRC) -o $@ $(LDLIBS) -framework CoreAudio
 
 build/symctl: tools/symctl/symctl.c lib/symusb.c lib/symusb.h | build
 	$(CC) $(CFLAGS) tools/symctl/symctl.c lib/symusb.c -o $@ $(LDLIBS)
