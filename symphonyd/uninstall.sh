@@ -6,4 +6,5 @@ LABEL=ca.arraymusic.symphonyd
 launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
 rm -f "$HOME/Library/LaunchAgents/$LABEL.plist"
 rm -rf "$HOME/Library/Application Support/Anti-Symphony"
+rm -rf "$HOME/Applications/Symphony Control.app"
 echo "removed (log kept at ~/Library/Logs/symphonyd.log)"

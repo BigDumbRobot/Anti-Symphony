@@ -22,7 +22,7 @@ Command Line Tools are enough (no Xcode needed).
 make install
 ```
 
-This builds everything and installs `symphonyd` as a LaunchAgent for your user: it starts at login and restarts if it ever exits. The log is `~/Library/Logs/symphonyd.log`. Remove it with `make uninstall`.
+This builds everything, puts **Symphony Control** (the Maestro replacement) in `~/Applications`, and installs `symphonyd` as a LaunchAgent for your user: it starts at login and restarts if it ever exits. The log is `~/Library/Logs/symphonyd.log`. Remove it with `make uninstall`.
 
 What `symphonyd` does:
 
@@ -50,7 +50,10 @@ The original plan included our own audio streaming and a Core Audio plug-in. App
 
 | Path | What |
 | --- | --- |
-| `symphonyd/` | The background service, its LaunchAgent and install scripts |
+| `symphonyd/` | The background service (handshake, device control, OSC), its LaunchAgent and install scripts |
+| `app/` | Symphony Control, the SwiftUI control app (talks to symphonyd over OSC) |
+| `avbbridge/` | Optional: puts the Symphony's channels on AVB through the Mac (parked) |
+| `docs/osc.md` | OSC addresses, for Companion and other controllers |
 | `lib/symusb.*` | Shared USB access with the command allowlist |
 | `tools/symctl/` | Command-line control of the Symphony |
 | `tools/usbdesc/` | Dumps the device's USB descriptors (read-only) |

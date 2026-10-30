@@ -22,7 +22,10 @@ build/avbbridge: avbbridge/avbbridge.c | build
 build/usbdesc: tools/usbdesc/usbdesc.c | build
 	$(CC) $(CFLAGS) tools/usbdesc/usbdesc.c -o $@ $(LDLIBS)
 
-install: all
+app:
+	app/build.sh
+
+install: all app
 	symphonyd/install.sh
 
 uninstall:
@@ -31,4 +34,4 @@ uninstall:
 clean:
 	rm -rf build
 
-.PHONY: all install uninstall clean
+.PHONY: all app install uninstall clean

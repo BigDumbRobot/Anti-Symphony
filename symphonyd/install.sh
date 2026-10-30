@@ -15,5 +15,11 @@ launchctl bootout "$DOMAIN/$LABEL" 2>/dev/null || true
 cp build/symphonyd build/symctl "$DEST/"
 sed -e "s|__BIN__|$BIN|" -e "s|__LOG__|$LOG|g" symphonyd/$LABEL.plist > "$PLIST"
 launchctl bootstrap "$DOMAIN" "$PLIST"
+if [ -d "build/Symphony Control.app" ]; then
+    mkdir -p "$HOME/Applications"
+    rm -rf "$HOME/Applications/Symphony Control.app"
+    cp -R "build/Symphony Control.app" "$HOME/Applications/"
+    echo "app:       $HOME/Applications/Symphony Control.app"
+fi
 echo "installed: $BIN"
 echo "log:       $LOG"
