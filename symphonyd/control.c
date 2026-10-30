@@ -28,6 +28,7 @@ typedef enum {
     K_PAN,     // byte 0..127, 64 = centre; OSC float -1 .. 1
     K_ROUTE,   // routing: addr = destination, value = source; OSC int
     K_REF,     // analog I/O type (reference level); OSC int
+    K_HPSRC,   // headphone source (0x54): addr = headphone index; low nibble = HP1, high = HP2; OSC int 0..15
 } Kind;
 
 typedef struct {
@@ -92,7 +93,8 @@ static void buildParams(int boardType) {
         add(K_BOOL,  0xE7, h - 1, 1, true, false, "/symphony/monitor/hp/%d/dim", h);
         add(K_BOOL,  0xE8, h - 1, 1, true, false, "/symphony/monitor/hp/%d/mono", h);
     }
-    add(K_INT, 0x54, 0, 1, false, false, "/symphony/monitor/hp/assign");
+    for (int h = 1; h <= 2; h++)
+        add(K_HPSRC, 0x54, (uint32_t)(h - 1), 1, true, false, "/symphony/monitor/hp/%d/source", h);
 
     // Analog I/O on board 1 (8x8 boards: 8 channels).
     int analog = (boardType == 2 || boardType == 3) ? 8 : 0;
@@ -153,6 +155,7 @@ static int fromOsc(const Param *p, double x) {
     case K_FADER: return clampi(lround(x + 48), 0, 48);
     case K_PAN:   return clampi(lround(64 + x * 64), 0, 127);
     case K_BOOL:  return x != 0;
+    case K_HPSRC: return clampi(lround(x), 0, 15);
     default:      return clampi(lround(x), 0, 255);
     }
 }
@@ -197,8 +200,8 @@ static void sendError(const struct sockaddr_storage *a, socklen_t len, const cha
 
 static bool readParam(Param *p) {
     uint8_t b[16] = {0};
-    if (sym_read(gDev, p->cmd, p->addr, b, p->len) < 1) return false;
-    int v = b[0];
+    if (sym_read(gDev, p->cmd, p->kind == K_HPSRC ? 0 : p->addr, b, p->len) < 1) return false;
+    int v = p->kind == K_HPSRC ? (p->addr ? b[0] >> 4 : b[0] & 0xF) : b[0];
     if (!p->known || v != p->value) {
         p->value = v;
         p->known = true;
@@ -222,6 +225,18 @@ static bool writeParam(Param *p, int raw) {
         if (sym_read(gDev, 0x20, io | ch << 16 | (uint32_t)raw, t, 2) != 2) return false;
         b[0] = (uint8_t)raw; b[1] = t[1];
         ok = sym_write(gDev, 0x20, io | ch, b, 2) == 2;
+        break;
+    }
+    case K_HPSRC: {
+        // Both headphones share one byte: keep the other headphone's half.
+        uint8_t cur;
+        if (sym_read(gDev, 0x54, 0, &cur, 1) != 1) return false;
+        b[0] = p->addr ? (uint8_t)((cur & 0x0F) | raw << 4) : (uint8_t)((cur & 0xF0) | raw);
+        ok = sym_write(gDev, 0x54, 0, b, 1) == 1;
+        // Keep the cached value of the other headphone's half in step.
+        for (int i = 0; i < gN; i++)
+            if (gP[i].kind == K_HPSRC && &gP[i] != p && gP[i].known)
+                gP[i].value = gP[i].addr ? b[0] >> 4 : b[0] & 0xF;
         break;
     }
     default:

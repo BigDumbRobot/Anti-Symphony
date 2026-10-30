@@ -43,7 +43,7 @@ Every control is a vendor control transfer on endpoint 0, device recipient:
 | 0xE7 | out | 1 | dim, 0/1 (r/w). out: monitor output enum 1 → 2, 2 → 0, 3 → 1 |
 | 0xE8 | out | 1 | sum to mono, 0/1 (r/w), same index map as dim |
 | 0xE9 | 0 | 1 | active speaker set (r/w) |
-| 0x54 | 0 | 1 | headphone assignment (r/w) |
+| 0x54 | 0 | 1 | headphone source (r/w): low nibble = headphone 1, high nibble = headphone 2. Each value picks an output pair the headphone mirrors (from `setHeadphoneAssignmentData`; pair order not yet confirmed) |
 | 0x2A | 0 | 1 | front panel output selection (r/w) |
 
 ### Inputs (mic pre)
@@ -97,7 +97,7 @@ Every control is a vendor control transfer on endpoint 0, device recipient:
 | 0xFF | 0 | 4 | system ready (read). `DAE5C4A1` once booted; Apogee polls until it sees that |
 | 0x28 | 1 | 12 | parameter updates: front-panel changes (polled about every 1.3 s). Bytes 0–3 big-endian sample rate (`0000BB80` = 48000) |
 | 0x2B | 0 | 1 | pop-up needs update (read) |
-| 0x30 | group | 0x40 or 0x20 | TDM meter data (read) |
+| 0x30 | group | 0x40 or 0x20 | TDM meter data (read). Groups 0, 1 = 64 bytes, 2 = 32. Reads all zero over USB, even with a tone playing and Apogee's default metering mode set (0x10 0 = 2, 0x10 1 = 3); probably only filled on the PCIe/TDM path |
 | 0x10 | n | 1 | front panel metering mode (write) |
 | 0x11 / 0x12 | 0 | 1 | front panel peak / over hold mode (write) |
 | 0x13 | 0 | 1 | clear front panel meters (write) |

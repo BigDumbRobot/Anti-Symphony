@@ -22,6 +22,15 @@ enum Names {
         return list
     }()
 
+    /// Headphone source (0x54): which output pair the headphone mirrors. From Apogee's code the
+    /// value picks an output pair; the order below (analog pairs, then optical) is still to be
+    /// confirmed by ear.
+    static let headphoneSources: [Item] = {
+        var list = (0..<4).map { (i: Int) -> Item in Item(id: i, name: "Analog Out \(2 * i + 1)–\(2 * i + 2)") }
+        list += (0..<4).map { (i: Int) -> Item in Item(id: 4 + i, name: "Optical Out \(2 * i + 1)–\(2 * i + 2)") }
+        return list
+    }()
+
     static let toMac: [Item] = (0..<16).map { Item(id: $0, name: "To Mac \($0 + 1)") }
 
     static func source(_ id: Int) -> String {

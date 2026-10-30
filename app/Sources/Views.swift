@@ -119,13 +119,12 @@ struct MonitoringView: View {
                         KeyToggle(title: "Dim", isOn: store.flag("/symphony/monitor/hp/\(h)/dim"), tint: .orange)
                         KeyToggle(title: "Mono", isOn: store.flag("/symphony/monitor/hp/\(h)/mono"))
                     }
-                    LabeledContent("Source") {
-                        Text("Mirror any output: not available yet (the box's headphone source setting isn't decoded)")
-                            .foregroundStyle(.secondary).font(.callout)
-                    }
+                    headphoneSource(h)
                 }
             }
             SwiftUI.Section {
+                Text("Headphone sources mirror an output pair. The pair order is still to be confirmed by ear.")
+                    .font(.caption).foregroundStyle(.secondary)
                 Button("Identify (blink front panel)") {
                     store.send("/symphony/identify", [.int(1)])
                     DispatchQueue.main.asyncAfter(deadline: .now() + 3) { store.send("/symphony/identify", [.int(0)]) }
@@ -133,6 +132,19 @@ struct MonitoringView: View {
             }
         }
         .formStyle(.grouped)
+    }
+}
+
+extension MonitoringView {
+    func headphoneSource(_ h: Int) -> some View {
+        let path = "/symphony/monitor/hp/\(h)/source"
+        let current = Int(store.value(path) ?? -1)
+        return Picker("Source (mirrors)", selection: store.choice(path)) {
+            ForEach(Names.headphoneSources) { Text($0.name).tag($0.id) }
+            if current >= 0, !Names.headphoneSources.contains(where: { $0.id == current }) {
+                Text("Value \(current)").tag(current)
+            }
+        }
     }
 }
 

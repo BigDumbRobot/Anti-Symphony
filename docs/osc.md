@@ -30,7 +30,7 @@ Levels are floats in dB; on/off controls are ints (0/1).
 | `/symphony/monitor/frontpanel` | front-panel output selection (raw) |
 | `/symphony/monitor/hp/1/level`, `/hp/2/level` | −64 … 0 dB |
 | `/symphony/monitor/hp/N/mute`, `/dim`, `/mono` | 0/1 |
-| `/symphony/monitor/hp/assign` | headphone assignment (raw; meaning not yet known) |
+| `/symphony/monitor/hp/1/source`, `/hp/2/source` | output pair the headphone mirrors, 0–15 (8x8 Analog-Optical, provisional: 0–3 = Analog Out 1–2 … 7–8, 4–7 = Optical Out 1–2 … 7–8) |
 
 ### Analog I/O (8x8 boards)
 | Address | Value |
