@@ -20,7 +20,7 @@ Captured 2026-10-30 on macOS 13.7.8 (Apple Silicon). Raw dump: `tools/usbdesc/sy
 
 No interrupt endpoint and no feature units: all real control is vendor-specific (see below).
 
-**Likely Tahoe failure:** both output terminals point at units that don't exist, and the clock is declared "external". Older AppleUSBAudio tolerated this; a stricter parser would plausibly reject the device. Not yet confirmed on Tahoe.
+**Not the Tahoe failure (checked 2026-10-30 on macOS 26.0.1):** both output terminals point at units that don't exist, and the clock is declared "external", but Tahoe accepts the descriptors anyway. The device enumerates with identical descriptors, and Apple's USB audio driver exposes it as 16 × 16 at 44.1/48/88.2/96 kHz. The failure is that the box waits for a host-ready handshake from Apogee's daemon, which no longer runs. See "Host-ready handshake" in protocol.md.
 
 ## Streaming
 

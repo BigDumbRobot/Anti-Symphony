@@ -2,6 +2,21 @@
 
 Recovered 2026-10-30 from Apogee's `symphonyIOUSBDaemon` 1.9.33 (unoptimised arm64 build with symbols; class `SymphonyIOControl`), plus a capture of its startup traffic. Raw extraction: `tools/capture/request-map-raw.txt` (regenerate with `tools/capture/extract_requests.py`).
 
+## Host-ready handshake (the "!" on the front panel)
+
+The box only acts as a USB interface after a host tells it the host is ready. Until then the front panel shows "!", even though macOS has enumerated it and Apple's USB audio driver has opened it. On Tahoe, Apogee's daemon no longer runs, so nothing sends this. Confirmed 2026-10-30 on macOS 26.0.1: sending it clears the "!" and the box appears as an audio device.
+
+From `SymphonyIO::SetPeripheralReady(bool)`, `SymphonyIOControl::waitForSystemReady`, and `SymphonyIOUSBAudioDeviceController::SystemSleep/SystemWake` in Apogee's daemon:
+
+1. Poll `0xFF` (read, 4 bytes) until it returns `DA E5 C4 A1` (big-endian `0xDAE5C4A1`): the box has booted.
+2. Write `0xDD` = `00`, read it back, repeat until it reads `00` (Apogee: up to 10 tries, 5 ms apart).
+3. Poll `0x28` (parameter updates) about every 1.3 s.
+4. Before system sleep write `0xDD` = `01`; after wake write `0xDD` = `00` again.
+
+Apogee pushes its saved settings (I/O types, monitoring, clock, routing, mixer) between steps 1 and 2. That isn't needed: with nothing pushed, the box keeps the settings stored in it. `symphonyd` does steps 1 to 4; `symctl ready` / `symctl release` do step 2 by hand.
+
+Side effects seen when host ready is set: `0x2B` (pop-up needs update) goes 1 → 0. After Apogee's full startup, byte 4 of `0x28` also went 1 → 0; with the handshake alone it stays 1 (meaning unknown).
+
 ## Transport
 
 Every control is a vendor control transfer on endpoint 0, device recipient:
@@ -79,7 +94,7 @@ Every control is a vendor control transfer on endpoint 0, device recipient:
 ### Status, metering, identity
 | cmd | addr | len | meaning |
 |---|---|---|---|
-| 0xFF | 0 | 4 | system ready (read; Apogee polls until ready) |
+| 0xFF | 0 | 4 | system ready (read). `DAE5C4A1` once booted; Apogee polls until it sees that |
 | 0x28 | 1 | 12 | parameter updates: front-panel changes (polled about every 1.3 s). Bytes 0–3 big-endian sample rate (`0000BB80` = 48000) |
 | 0x2B | 0 | 1 | pop-up needs update (read) |
 | 0x30 | group | 0x40 or 0x20 | TDM meter data (read) |
@@ -92,8 +107,8 @@ Every control is a vendor control transfer on endpoint 0, device recipient:
 | 0x33 | 0 | 1 | identify (blink) (write) |
 | 0x37 | 0 | 1 | prefix (r/w) |
 | 0xCD | 0x1234 | 1 | "daemon disabled from firmware" (r/w; Apogee polls the read) |
-| 0xDB | 0 | 1 | reset request (read) / clear (write) |
-| 0xDD | 0 | 1 | preference load lock (r/w) |
+| 0xDB | 0 | 1 | reset request (read) / clear (write). Reads 2 at startup; Apogee's poll loop acts on 2, 3 and 4 and then clears it. We leave it alone: everything works without it |
+| 0xDD | 0 | 1 | **host ready lock** (r/w): 0 = host ready, 1 = no host (front panel "!"). Apogee calls it "preference load lock". See the handshake above |
 | 0xDE | 0 | 4 | preference settings (read) |
 
 ## Never send
@@ -104,4 +119,5 @@ DFU, flash and reset commands live in `ApoUSB` / `XMOSUSB` (`EnterDFU`, `EraseFi
 
 - Units for the signed volume and gain bytes (live reads will show).
 - The 12-byte parameter-update layout beyond the sample rate.
+- What Apogee does for reset request values 2, 3 and 4 (`SymphonyIO::GetChangesFromHW`).
 - Enum values: speaker output mode, clock source, analog I/O type, board types, routing source and destination IDs.

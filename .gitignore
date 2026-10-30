@@ -1,8 +1,6 @@
 .DS_Store
 
 # Build outputs
-tools/usbdesc/usbdesc
-tools/symctl/symctl
 tools/capture/usbspy.dylib
 build/
 
