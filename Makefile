@@ -3,7 +3,7 @@ CC      = clang
 CFLAGS  = -O2 -Wall -Wextra -Wno-unused-parameter -Ilib
 LDLIBS  = -framework IOKit -framework CoreFoundation
 
-all: build/symphonyd build/symctl build/usbdesc
+all: build/symphonyd build/symctl build/usbdesc build/avbbridge
 
 build:
 	mkdir -p build
@@ -13,6 +13,9 @@ build/symphonyd: symphonyd/symphonyd.c lib/symusb.c lib/symusb.h | build
 
 build/symctl: tools/symctl/symctl.c lib/symusb.c lib/symusb.h | build
 	$(CC) $(CFLAGS) tools/symctl/symctl.c lib/symusb.c -o $@ $(LDLIBS)
+
+build/avbbridge: avbbridge/avbbridge.c | build
+	$(CC) $(CFLAGS) avbbridge/avbbridge.c -o $@ -framework CoreAudio -framework CoreFoundation
 
 build/usbdesc: tools/usbdesc/usbdesc.c | build
 	$(CC) $(CFLAGS) tools/usbdesc/usbdesc.c -o $@ $(LDLIBS)
