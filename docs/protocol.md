@@ -111,6 +111,43 @@ Every control is a vendor control transfer on endpoint 0, device recipient:
 | 0xDD | 0 | 1 | **host ready lock** (r/w): 0 = host ready, 1 = no host (front panel "!"). Apogee calls it "preference load lock". See the handshake above |
 | 0xDE | 0 | 4 | preference settings (read) |
 
+## Values (decoded 2026-10-30 from the daemon and live reads)
+
+### I/O board types (`0xA1`)
+| code | board |
+| --- | --- |
+| 0 | none |
+| 1 | 8 mic pre (MicPre8ch) |
+| 2 | 8x8 Analog-AES |
+| 3 | 8x8 Analog-Optical (the unit here) |
+| 4 | AD16 |
+| 5 | DA16 |
+| 6 | AD/DA16 |
+| 7 | 2x6 |
+
+### Levels
+- Main out (`0x26`) and headphones (`0x23`): **attenuation in dB**, 0 to 64. Level = −byte dB (so `0x19` = −25 dB). From `SymphonyIO::SetCoreAudioVolumeDB` and the 0x40 clamp in `changeMainOutAtten` / `changeHPLevel`.
+- Mixer faders (`0xB0`): byte = max(0, dB + 48).
+
+### Clock mode (`0x50`, 4 bytes)
+Write: `[source, flag, flag, board index]`. The main unit uses sources 1, 2 and 3 (internal, word clock, loop sync; which is which is not yet confirmed); optical board inputs use 4 and 5. Read returns the source in byte 0 and the board index in byte 3. The sample rate itself is set from the Mac (Core Audio), because Apple's driver owns the USB stream.
+
+### Routing (`0x31`)
+Read `0x31 dest` returns the source for one destination. Write `0x31 0` takes (dest, src) byte pairs. Destinations from a full scan of 0x00–0xFF, with the defaults seen on the unit here:
+
+| dest | what (likely) | default source |
+| --- | --- | --- |
+| 0x00–0x1F | USB record channels 1–32 (to the Mac) | 0x20–0x3F (board inputs) |
+| 0x20–0x2F | board 1 outputs (8x8: analog out 1–8, optical out 1–8) | 0xC0–0xCF (DAW playback 1–16) |
+| 0x30–0x3F | board 2 outputs (no board here) | 0xEC (none) |
+| 0x40–0x4F, 0x50–0x5F | mixer 1 inputs (board 1, board 2) | 0x20–0x2F, 0x00 |
+| 0x60–0x6F, 0x70–0x7F | mixer 2 inputs | 0x20–0x2F, 0x00 |
+| 0xB0–0xB3 | headphone 1 L/R, headphone 2 L/R (unconfirmed) | 0xC0, 0xC1, 0xC0, 0xC1 |
+| 0xB4–0xB7 | mixer 1 L/R and mixer 2 L/R outputs to somewhere (unconfirmed) | 0x40, 0x41, 0x60, 0x61 |
+| 0x80–0xAF, 0xC0–0xFF | not yet identified | mixed |
+
+Sources: 0x20–0x2F board 1 inputs, 0x30–0x3F board 2 inputs (`BoardForRoutingSource`); 0x40/0x41 and 0x60/0x61 mixer 1 and 2 outputs; 0xC0–0xCF DAW playback 1–16; 0xEC none.
+
 ## Never send
 
 DFU, flash and reset commands live in `ApoUSB` / `XMOSUSB` (`EnterDFU`, `EraseFirmware`, `WriteDFUBlock`, `VendorSpecificReset`, `VendorSpecificRevertNormal`, `VendorSpecificSetRevertId`, `VendorSpecificFinalizeBootPartition`, `ResetFactorySettingsNVRAM`, `XMOSResetIntoDFU`). Their request numbers are not on this page on purpose. Our tool refuses any command not listed above. The functional-test commands (0xE5, 0xE6) are also excluded.
