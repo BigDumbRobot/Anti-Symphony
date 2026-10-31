@@ -30,17 +30,26 @@ Levels are floats in dB; on/off controls are ints (0/1).
 | `/symphony/monitor/frontpanel` | front-panel output selection (raw) |
 | `/symphony/monitor/hp/1/level`, `/hp/2/level` | −64 … 0 dB |
 | `/symphony/monitor/hp/N/mute`, `/dim`, `/mono` | 0/1 |
-| `/symphony/monitor/hp/1/source`, `/hp/2/source` | output pair the headphone mirrors, 0–15 (8x8 Analog-Optical, provisional: 0–3 = Analog Out 1–2 … 7–8, 4–7 = Optical Out 1–2 … 7–8) |
+| `/symphony/monitor/hp/N/mirror` | output pair the headphone mirrors, by its left destination (32 = Analog Out 1–2 … 46 = Optical Out 7–8), or −1 for its own feed. While mirroring, the headphone follows any change to that output's routing. Remembered across restarts |
 
 ### Analog I/O (8x8 boards)
 | Address | Value |
 | --- | --- |
-| `/symphony/io/analog/in/N/ref`, `/io/analog/out/N/ref` (N = 1–8) | reference level code (raw; names in docs/protocol.md, not yet confirmed) |
+| `/symphony/io/analog/in/N/ref`, `/io/analog/out/N/ref` (N = 1–8) | 1 = −10 dBV, 2 = +4 dBu (measured); outputs also have 0 = power-on default |
 | `/symphony/io/analog/in/N/softlimit` | 0/1 |
 | `/symphony/io/optical/spdif` | 0 = ADAT, 1 = S/PDIF (Analog-Optical board) |
 
 ### Routing
-`/symphony/route/<dest>` = source ID, both as decimal numbers. Destinations 0–31 are the channels the Mac records, 32–47 are the board's outputs, and 176–183 (0xB0–0xB7) are headphone/mixer feeds. Source IDs are in docs/protocol.md (192–207 = DAW playback 1–16, 32–47 = board inputs).
+`/symphony/route/<dest>` = source ID, both as decimal numbers:
+
+| dest | what |
+| --- | --- |
+| 32–47 | board outputs: Analog Out 1–8, Optical Out 1–8 |
+| 208–223 | the 16 channels the Mac records |
+| 224, 225 / 226, 227 | headphone 1 / headphone 2 feed, left and right (setting these ends mirroring) |
+| 64–79 / 96–111 | mixer 1 / mixer 2 inputs 1–16 |
+
+Sources: 32–39 Analog In 1–8, 40–47 Optical In 1–8, 192–207 DAW 1–16, 64/65 Mixer 1 L/R, 96/97 Mixer 2 L/R, 236 none.
 
 ### Mixers
 `/symphony/mixer/M/in/N/fader|pan|solo|mute` (M = 1–2, N = 1–16), plus `/symphony/mixer/M/master/...` and `/symphony/mixer/M/return/...`. Fader: −48 … 0 dB. Pan: −1 (left) … 1 (right).
@@ -50,8 +59,18 @@ Levels are floats in dB; on/off controls are ints (0/1).
 | --- | --- |
 | `/symphony/clock/rate` | 44100, 48000, 88200 or 96000 (set through Core Audio) |
 | `/symphony/clock/source` | read-only, raw |
-| `/symphony/clock/external` | read-only: external clock status byte |
 | `/symphony/identify` | 1/0: blink the front panel |
+
+## Profiles
+
+| Send | What happens |
+| --- | --- |
+| `/symphony/profile/save "<name>"` | Save every setting (and headphone mirror choices) under that name. Names: 1–64 letters, digits, spaces or `- _ . ( )`. |
+| `/symphony/profile/load "<name>"` | Put that profile back on the box. |
+| `/symphony/profile/delete "<name>"` | Delete it. |
+| `/symphony/profile/list` | Reply `/symphony/profiles "<name>\n<name>…"` (also sent on subscribe and after any change). |
+
+Profiles are text files in `~/Library/Application Support/Anti-Symphony/profiles/`. Separately, symphonyd keeps the current settings in `…/Anti-Symphony/settings` and puts them back when the box comes back with defaults (it forgets host-set settings when it reboots).
 
 ## Companion
 

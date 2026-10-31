@@ -43,7 +43,7 @@ Every control is a vendor control transfer on endpoint 0, device recipient:
 | 0xE7 | out | 1 | dim, 0/1 (r/w). out: monitor output enum 1 → 2, 2 → 0, 3 → 1 |
 | 0xE8 | out | 1 | sum to mono, 0/1 (r/w), same index map as dim |
 | 0xE9 | 0 | 1 | active speaker set (r/w) |
-| 0x54 | 0 | 1 | headphone source (r/w): low nibble = headphone 1, high nibble = headphone 2. Each value picks an output pair the headphone mirrors (from `setHeadphoneAssignmentData`; pair order not yet confirmed) |
+| 0x54 | 0 | 1 | headphone assignment (r/w): low nibble headphone 1, high nibble headphone 2. No audible effect over USB (all values tested); the headphone feeds are routes 0xE0–0xE3 |
 | 0x2A | 0 | 1 | front panel output selection (r/w) |
 
 ### Inputs (mic pre)
@@ -87,7 +87,7 @@ Every control is a vendor control transfer on endpoint 0, device recipient:
 |---|---|---|---|
 | 0x03 | 0 | 1 | sample rate code (write): 48k=0, 96k=1, 192k=2, 44.1k=4, 88.2k=5, 176.4k=6 |
 | 0x50 | 0 | 4 | clock mode: source, flags, AES/opt board index (r/w) |
-| 0x51 | 0 | 5 | external clock status (read) |
+| 0x51 | 0 | 5 | external clock status (read). **Never read it:** it crashes the box (hung after 1,540 reads in a stress test, 3,471 when mixed with 0x50; the box reboots and loses host-set settings). symphonyd used to poll it and the box hung every few hours. Not on the allowlist |
 | 0x52 | 0 | 2 | I/O board digital input status (read) |
 | 0x53 | 0 | 1 | Pro Tools star-sync mode (r/w) |
 
@@ -127,26 +127,31 @@ Every control is a vendor control transfer on endpoint 0, device recipient:
 
 ### Levels
 - Main out (`0x26`) and headphones (`0x23`): **attenuation in dB**, 0 to 64. Level = −byte dB (so `0x19` = −25 dB). From `SymphonyIO::SetCoreAudioVolumeDB` and the 0x40 clamp in `changeMainOutAtten` / `changeHPLevel`.
-- Mixer faders (`0xB0`): byte = max(0, dB + 48).
+- Mixer faders (`0xB0`): byte = max(0, dB + 48). Measured: −20 dB → 20.1 dB, master −10 dB → 10.1 dB. Pan (`0xB1`) 0–127, 64 = centre, −3 dB pan law. Mixer master is input `0x21`, software return `0x20`.
+- Analog reference level (write `0x20 [code, trim]`, read `0x60`), measured through a loopback cable: code 1 = −10 dBV, code 2 = +4 dBu (11.7 dB apart on both inputs and outputs). Code 0 on an input keeps the previous level; on an output it's the power-on default, 3 dB under +4 dBu. The box forgets these when it reboots.
+- Headphone mute (`0x24`): bit 0 = mute (fades out over about 1 s, then ~90 dB down); the box sets bit 1 itself when the level is at minimum.
 
 ### Clock mode (`0x50`, 4 bytes)
 Write: `[source, flag, flag, board index]`. The main unit uses sources 1, 2 and 3 (internal, word clock, loop sync; which is which is not yet confirmed); optical board inputs use 4 and 5. Read returns the source in byte 0 and the board index in byte 3. The sample rate itself is set from the Mac (Core Audio), because Apple's driver owns the USB stream.
 
 ### Routing (`0x31`)
-Read `0x31 dest` returns the source for one destination. Write `0x31 0` takes (dest, src) byte pairs. Destinations from a full scan of 0x00–0xFF, with the defaults seen on the unit here:
+Read `0x31 dest` returns the source for one destination. Write `0x31 0` takes (dest, src) byte pairs. Destinations marked "measured" were confirmed with tones and loopback cables (tests/hwtest.py):
 
-| dest | what (likely) | default source |
+| dest | what | default source |
 | --- | --- | --- |
-| 0x00–0x1F | USB record channels 1–32 (to the Mac) | 0x20–0x3F (board inputs) |
-| 0x20–0x2F | board 1 outputs (8x8: analog out 1–8, optical out 1–8) | 0xC0–0xCF (DAW playback 1–16) |
+| 0x20–0x2F | board 1 outputs (8x8: analog out 1–8, optical out 1–8). Measured | 0xC0–0xCF (DAW playback 1–16) |
 | 0x30–0x3F | board 2 outputs (no board here) | 0xEC (none) |
-| 0x40–0x4F, 0x50–0x5F | mixer 1 inputs (board 1, board 2) | 0x20–0x2F, 0x00 |
-| 0x60–0x6F, 0x70–0x7F | mixer 2 inputs | 0x20–0x2F, 0x00 |
-| 0xB0–0xB3 | headphone 1 L/R, headphone 2 L/R (unconfirmed) | 0xC0, 0xC1, 0xC0, 0xC1 |
-| 0xB4–0xB7 | mixer 1 L/R and mixer 2 L/R outputs to somewhere (unconfirmed) | 0x40, 0x41, 0x60, 0x61 |
-| 0x80–0xAF, 0xC0–0xFF | not yet identified | mixed |
+| 0xD0–0xDF | **the 16 channels the Mac records**. Measured | read 0x00 before a host sets them; after a box reboot 0x00 records silence, so symphonyd sets them explicitly |
+| 0xE0, 0xE1 | **headphone 1 left, right**. Measured | 0xC0, 0xC1 (DAW 1–2) |
+| 0xE2, 0xE3 | **headphone 2 left, right**. Measured | 0xC0, 0xC1 |
+| 0xE4–0xE7, 0xF6–0xF9 | read DAW 1–2 by default; no effect on the headphones or board outputs | 0xC0/0xC1 |
+| 0x40–0x4F, 0x60–0x6F | mixer 1 and mixer 2 inputs 1–16. Measured | 0x20–0x2F (board inputs) |
+| 0x80–0x8F | part of the audio path: writing here broke recording until restored. Leave alone | 0x20–0x27, 0xC0–0xC7 |
+| 0x00–0x1F, 0x90–0xBF | not identified (no effect on the measured paths) | mixed |
 
-Sources: 0x20–0x2F board 1 inputs, 0x30–0x3F board 2 inputs (`BoardForRoutingSource`); 0x40/0x41 and 0x60/0x61 mixer 1 and 2 outputs; 0xC0–0xCF DAW playback 1–16; 0xEC none.
+Sources: 0x20–0x2F board 1 inputs (analog in 1–8, optical in 1–8), 0x30–0x3F board 2 inputs, 0x40/0x41 mixer 1 L/R, 0x60/0x61 mixer 2 L/R, 0xC0–0xCF DAW playback 1–16, 0xEC none. Writing DAW 7 to a recording channel loops it back bit-exact (−24.00 dBFS in, −24.00 out).
+
+`0x54` ("headphone assignment" in Apogee's code) is **not** the headphone source: all 16 values left the headphones unchanged.
 
 ## Never send
 

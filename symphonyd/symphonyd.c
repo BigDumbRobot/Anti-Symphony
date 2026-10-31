@@ -33,6 +33,8 @@
 #define MAX_UNITS 4
 #define MAX_FAILURES 5            // consecutive failed polls before reopening the device
 #define BOOT_WARN_SECONDS 20.0
+#define HANGS_BEFORE_RESET 2      // reopen cycles that fail before resetting the USB connection
+#define RESET_MIN_SECONDS 60.0
 
 typedef enum { WAIT_BOOT, ACTIVE } State;
 
@@ -46,6 +48,8 @@ typedef struct {
     int failures;
     double waitingSince;
     bool warnedBoot, warnedOpen, announced;
+    int hangs;                    // consecutive reopen cycles with no answer from the box
+    double lastReset;
     uint8_t params[12];
     bool haveParams;
 } Unit;
@@ -181,9 +185,22 @@ static void pollUnit(Unit *u) {
     }
 
     if (u->failures >= MAX_FAILURES) {
-        LOG(u, "%d failed requests in a row (last 0x%08x); reopening", u->failures, sym_last_error());
+        IOReturn e = sym_last_error();
+        LOG(u, "%d failed requests in a row (last 0x%08x); reopening", u->failures, e);
         closeDev(u);
         resetToWaitBoot(u);
+        // A box that stops answering (seen once in testing) comes back after a USB reset,
+        // the same as unplugging it. Do that, but not more than once a minute.
+        if (e == kIOReturnNotResponding || e == kIOReturnTimeout || e == kIOUSBTransactionTimeout) {
+            if (++u->hangs >= HANGS_BEFORE_RESET && now() - u->lastReset > RESET_MIN_SECONDS) {
+                LOG(u, "box not responding; resetting the USB connection");
+                u->lastReset = now();
+                u->hangs = 0;
+                if (sym_reenumerate(u->svc)) LOG(u, "USB reset failed (0x%08x)", sym_last_error());
+            }
+        }
+    } else if (u->state == ACTIVE && u->failures == 0) {
+        u->hangs = 0;
     }
 }
 
@@ -271,10 +288,11 @@ int main(int argc, char **argv) {
         if (!strcmp(argv[i], "-v")) gVerbose = true;
         else if (!strcmp(argv[i], "--osc-bind") && i + 1 < argc) oscBind = argv[++i];
         else if (!strcmp(argv[i], "--osc-port") && i + 1 < argc) oscPort = atoi(argv[++i]);
+        else if (!strcmp(argv[i], "--version")) { printf("symphonyd %s\n", SYM_VERSION); return 0; }
         else { fprintf(stderr, "usage: symphonyd [-v] [--osc-bind <ipv4>] [--osc-port <port>]\n"); return 2; }
     }
     setvbuf(stderr, NULL, _IOLBF, 0);
-    logf_("symphonyd starting");
+    logf_("symphonyd %s starting", SYM_VERSION);
     ctl_init(oscBind, oscPort);   // keeps the handshake running even if OSC can't start
 
     // USB attach / detach. The first call to each handler arms the notification and picks up

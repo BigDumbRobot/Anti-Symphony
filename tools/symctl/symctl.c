@@ -5,6 +5,7 @@
 //   symctl dump                         read every known status value
 //   symctl ready                        send the host-ready handshake (clears the "!")
 //   symctl release                      undo it (box shows "!" again)
+//   symctl usb-reset                    reset the USB connection (same as unplug/replug)
 //   symctl read  <cmd> <addr> <len>     raw read, e.g. symctl read 0x26 0 1
 //   symctl write <cmd> <addr> <hex>     raw write, e.g. symctl write 0x27 0 01
 //
@@ -43,7 +44,6 @@ static int dump(void) {
     show(0x2B, 0, 1);
     show(0x28, 1, 12);
     show(0x50, 0, 4);
-    show(0x51, 0, 5);
     show(0x52, 0, 2);
     show(0x53, 0, 1);
     printf("monitoring\n");
@@ -73,8 +73,18 @@ static int fail(const char *what, uint8_t cmd) {
 
 int main(int argc, char **argv) {
     if (argc < 2) {
-        fprintf(stderr, "usage: symctl dump | ready | release | read <cmd> <addr> <len> | write <cmd> <addr> <hexbytes>\n");
+        fprintf(stderr, "usage: symctl dump | ready | release | usb-reset | read <cmd> <addr> <len> | write <cmd> <addr> <hexbytes>\n");
         return 2;
+    }
+    if (!strcmp(argv[1], "--version")) { printf("symctl %s\n", SYM_VERSION); return 0; }
+    if (!strcmp(argv[1], "usb-reset")) {
+        io_service_t svc = IOServiceGetMatchingService(kIOMainPortDefault, sym_matching());
+        if (!svc) { fprintf(stderr, "Symphony I/O (0c60:0010) not found\n"); return 1; }
+        int r = sym_reenumerate(svc);
+        IOObjectRelease(svc);
+        if (r) { fprintf(stderr, "USB reset failed: 0x%08x\n", sym_last_error()); return 1; }
+        printf("USB connection reset\n");
+        return 0;
     }
     if (!(gDev = sym_open_first())) { fprintf(stderr, "Symphony I/O (0c60:0010) not found\n"); return 1; }
 

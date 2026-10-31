@@ -22,24 +22,38 @@ enum Names {
         return list
     }()
 
-    /// Headphone source (0x54): which output pair the headphone mirrors. From Apogee's code the
-    /// value picks an output pair; the order below (analog pairs, then optical) is still to be
-    /// confirmed by ear.
-    static let headphoneSources: [Item] = {
-        var list = (0..<4).map { (i: Int) -> Item in Item(id: i, name: "Analog Out \(2 * i + 1)–\(2 * i + 2)") }
-        list += (0..<4).map { (i: Int) -> Item in Item(id: 4 + i, name: "Optical Out \(2 * i + 1)–\(2 * i + 2)") }
+    /// Output pairs a headphone can mirror, by the left channel's destination ID.
+    static let outputPairs: [Item] = {
+        var list = (0..<4).map { (i: Int) -> Item in Item(id: 0x20 + 2 * i, name: "Analog Out \(2 * i + 1)–\(2 * i + 2)") }
+        list += (0..<4).map { (i: Int) -> Item in Item(id: 0x28 + 2 * i, name: "Optical Out \(2 * i + 1)–\(2 * i + 2)") }
         return list
     }()
 
-    static let toMac: [Item] = (0..<16).map { Item(id: $0, name: "To Mac \($0 + 1)") }
+    /// Stereo source pairs a headphone can take directly, by the left channel's source ID.
+    static let sourcePairs: [Item] = {
+        var list = (0..<8).map { (i: Int) -> Item in Item(id: 0xC0 + 2 * i, name: "DAW \(2 * i + 1)–\(2 * i + 2)") }
+        list += [Item(id: 0x40, name: "Mixer 1"), Item(id: 0x60, name: "Mixer 2")]
+        list += (0..<4).map { (i: Int) -> Item in Item(id: 0x20 + 2 * i, name: "Analog In \(2 * i + 1)–\(2 * i + 2)") }
+        list += (0..<4).map { (i: Int) -> Item in Item(id: 0x28 + 2 * i, name: "Optical In \(2 * i + 1)–\(2 * i + 2)") }
+        return list
+    }()
+
+    /// Headphone feed destinations (left; right is +1).
+    static func headphoneFeed(_ h: Int) -> Int { 0xE0 + 2 * (h - 1) }
+
+    /// The 16 channels the Mac records (destinations 0xD0-0xDF).
+    static let toMac: [Item] = (0..<16).map { Item(id: 0xD0 + $0, name: "To Mac \($0 + 1)") }
 
     static func source(_ id: Int) -> String {
         sources.first { $0.id == id }?.name ?? String(format: "Source 0x%02X", id)
     }
 
-    /// Analog reference level codes. Provisional: from the order of Apogee's name table,
-    /// still to be checked against the front panel.
-    static let refLevels: [Item] = [Item(id: 0, name: "+4 dBu"), Item(id: 1, name: "−10 dBV"), Item(id: 2, name: "Variable")]
+    /// Analog reference level codes, measured through a loopback cable (tests/hwtest.py):
+    /// code 1 and 2 are 11.7 dB apart (the +4 dBu / −10 dBV difference). On inputs code 0 isn't a
+    /// level (it keeps the previous one); on outputs it's the box's power-on default, 3 dB under +4 dBu.
+    static let inputRefLevels: [Item] = [Item(id: 2, name: "+4 dBu"), Item(id: 1, name: "−10 dBV")]
+    static let outputRefLevels: [Item] = [Item(id: 2, name: "+4 dBu"), Item(id: 1, name: "−10 dBV"),
+                                          Item(id: 0, name: "Default (+1 dBu)")]
 
     static let rates: [Int] = [44100, 48000, 88200, 96000]
 }

@@ -30,7 +30,8 @@ static const struct { uint8_t cmd; const char *rw; const char *name; } kAllowed[
     {0x36, "rw", "S/PDIF coax mirror output"},
     {0x37, "rw", "prefix"},
     {0x50, "rw", "clock mode"},
-    {0x51, "r",  "external clock status"},
+    // 0x51 (external clock status) is deliberately absent: reading it crashes the box
+    // (hung after 1,540 reads in testing; the box reboots and loses settings).
     {0x52, "r",  "digital input status"},
     {0x53, "rw", "Pro Tools star-sync mode"},
     {0x54, "rw", "headphone assignment"},
@@ -171,4 +172,17 @@ int sym_set_host_ready(SymDev dev, bool ready) {
         usleep(5000);
     }
     return -1;
+}
+
+int sym_reenumerate(io_service_t svc) {
+    SymDev dev = sym_open(svc);
+    if (!dev) return -1;
+    IOReturn r = (*dev)->USBDeviceOpenSeize(dev);
+    if (r == kIOReturnSuccess) {
+        r = (*dev)->USBDeviceReEnumerate(dev, 0);
+        (*dev)->USBDeviceClose(dev);
+    }
+    sym_close(dev);
+    gLastError = r;
+    return r == kIOReturnSuccess ? 0 : -1;
 }

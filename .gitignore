@@ -13,3 +13,5 @@ tools/capture/daemon-arm64.s
 tools/capture/usbspy*.log
 tools/capture/daemon-stdout.log
 tools/capture/daemon.pid
+app/.build/
+__pycache__/

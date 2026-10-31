@@ -31,6 +31,10 @@ int sym_read(SymDev dev, uint8_t cmd, uint32_t addr, void *buf, uint16_t len);
 int sym_write(SymDev dev, uint8_t cmd, uint32_t addr, const void *buf, uint16_t len);
 IOReturn sym_last_error(void);
 
+// Resets the USB connection (same as unplugging and replugging). A standard USB operation,
+// not a vendor request. Used to recover a box that stopped answering. 0 = ok, -1 = failed.
+int sym_reenumerate(io_service_t svc);
+
 // 1 = box has booted, 0 = not yet, -1 = request failed.
 int sym_system_ready(SymDev dev);
 

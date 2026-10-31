@@ -1,7 +1,7 @@
 import SwiftUI
 
 enum Section: String, CaseIterable, Identifiable {
-    case monitoring = "Monitoring", inputs = "Inputs & Outputs", routing = "Routing", mixer = "Mixer", clock = "Clock"
+    case monitoring = "Monitoring", inputs = "Inputs & Outputs", routing = "Routing", mixer = "Mixer", clock = "Clock", profiles = "Profiles"
     var id: String { rawValue }
     var icon: String {
         switch self {
@@ -10,6 +10,7 @@ enum Section: String, CaseIterable, Identifiable {
         case .routing: return "arrow.triangle.branch"
         case .mixer: return "slider.vertical.3"
         case .clock: return "metronome"
+        case .profiles: return "square.stack"
         }
     }
 }
@@ -40,6 +41,7 @@ struct ContentView: View {
                     case .routing: RoutingView()
                     case .mixer: MixerView()
                     case .clock: ClockView()
+                    case .profiles: ProfilesView()
                     }
                 }
             }
@@ -47,6 +49,12 @@ struct ContentView: View {
             .navigationTitle((section ?? .monitoring).rawValue)
         }
         .overlay(alignment: .bottom) { ErrorBanner() }
+        .overlay(alignment: .top) {
+            if let n = store.notice {
+                Text(n).padding(.horizontal, 14).padding(.vertical, 8)
+                    .background(.regularMaterial, in: Capsule()).padding(.top, 8)
+            }
+        }
     }
 }
 
@@ -123,7 +131,7 @@ struct MonitoringView: View {
                 }
             }
             SwiftUI.Section {
-                Text("Headphone sources mirror an output pair. The pair order is still to be confirmed by ear.")
+                Text("Mirroring follows that output: if you reroute the output, the headphones follow. An own feed is independent of the outputs.")
                     .font(.caption).foregroundStyle(.secondary)
                 Button("Identify (blink front panel)") {
                     store.send("/symphony/identify", [.int(1)])
@@ -136,13 +144,36 @@ struct MonitoringView: View {
 }
 
 extension MonitoringView {
+    /// One picker per headphone: mirror an output (follows that output's routing) or take a
+    /// source pair directly (its own feed, independent of the outputs).
     func headphoneSource(_ h: Int) -> some View {
-        let path = "/symphony/monitor/hp/\(h)/source"
-        let current = Int(store.value(path) ?? -1)
-        return Picker("Source (mirrors)", selection: store.choice(path)) {
-            ForEach(Names.headphoneSources) { Text($0.name).tag($0.id) }
-            if current >= 0, !Names.headphoneSources.contains(where: { $0.id == current }) {
-                Text("Value \(current)").tag(current)
+        let mirrorPath = "/symphony/monitor/hp/\(h)/mirror"
+        let left = "/symphony/route/\(Names.headphoneFeed(h))", right = "/symphony/route/\(Names.headphoneFeed(h) + 1)"
+        let selection = Binding<String>(
+            get: {
+                let mirror = Int(store.value(mirrorPath) ?? -1)
+                if mirror >= 0 { return "m\(mirror)" }
+                let l = Int(store.value(left) ?? -1), r = Int(store.value(right) ?? -1)
+                return r == l + 1 ? "d\(l)" : "custom"
+            },
+            set: { tag in
+                guard let id = Int(tag.dropFirst()) else { return }
+                if tag.hasPrefix("m") {
+                    store.set(mirrorPath, Double(id), float: false)
+                } else {
+                    store.set(left, Double(id), float: false)
+                    store.set(right, Double(id + 1), float: false)
+                }
+            })
+        return Picker("Feed", selection: selection) {
+            SwiftUI.Section("Mirror an output") {
+                ForEach(Names.outputPairs) { Text("Mirror \($0.name)").tag("m\($0.id)") }
+            }
+            SwiftUI.Section("Own feed") {
+                ForEach(Names.sourcePairs) { Text($0.name).tag("d\($0.id)") }
+            }
+            if selection.wrappedValue == "custom" {
+                Text("\(Names.source(Int(store.value(left) ?? -1))) / \(Names.source(Int(store.value(right) ?? -1)))").tag("custom")
             }
         }
     }
@@ -166,16 +197,16 @@ struct IOView: View {
                     ForEach(1...8, id: \.self) { c in
                         GridRow {
                             Text("Analog \(c)")
-                            refPicker("/symphony/io/analog/in/\(c)/ref")
+                            refPicker("/symphony/io/analog/in/\(c)/ref", Names.inputRefLevels)
                             Toggle("", isOn: store.flag("/symphony/io/analog/in/\(c)/softlimit")).labelsHidden()
-                            refPicker("/symphony/io/analog/out/\(c)/ref")
+                            refPicker("/symphony/io/analog/out/\(c)/ref", Names.outputRefLevels)
                         }
                     }
                 }
             } header: {
                 Text("Analog (8x8 Analog-Optical)")
             } footer: {
-                Text("Level names are provisional until checked against the front panel.")
+                Text("Levels measured with a loopback cable: +4 dBu and −10 dBV are 11.7 dB apart on this unit.")
                     .font(.caption).foregroundStyle(.secondary)
             }
             SwiftUI.Section("Optical") {
@@ -190,11 +221,11 @@ struct IOView: View {
         .formStyle(.grouped)
     }
 
-    private func refPicker(_ path: String) -> some View {
+    private func refPicker(_ path: String, _ levels: [Names.Item]) -> some View {
         let current = Int(store.value(path) ?? -1)
         return Picker("", selection: store.choice(path)) {
-            ForEach(Names.refLevels) { Text($0.name).tag($0.id) }
-            if current >= 0, !Names.refLevels.contains(where: { $0.id == current }) {
+            ForEach(levels) { Text($0.name).tag($0.id) }
+            if current >= 0, !levels.contains(where: { $0.id == current }) {
                 Text("Code \(current)").tag(current)
             }
         }
@@ -251,7 +282,8 @@ struct MixerView: View {
             ScrollView(.horizontal) {
                 HStack(alignment: .top, spacing: 6) {
                     ForEach(1...16, id: \.self) { i in
-                        Strip(title: "In \(i)", base: "/symphony/mixer/\(mixer)/in/\(i)")
+                        Strip(title: "In \(i)", base: "/symphony/mixer/\(mixer)/in/\(i)",
+                              route: "/symphony/route/\((mixer == 1 ? 0x40 : 0x60) + i - 1)")
                     }
                     Divider()
                     Strip(title: "Return", base: "/symphony/mixer/\(mixer)/return")
@@ -267,12 +299,24 @@ struct Strip: View {
     @EnvironmentObject var store: Store
     let title: String
     let base: String
+    var route: String? = nil
     var soloMute = true
 
     var body: some View {
         let fader = store.level("\(base)/fader", default: 0)
         VStack(spacing: 8) {
             Text(title).font(.caption).bold()
+            if let route {
+                Menu(Names.source(Int(store.value(route) ?? -1))) {
+                    ForEach(Names.sources) { src in
+                        Button(src.name) { store.set(route, Double(src.id), float: false) }
+                    }
+                }
+                .menuStyle(.borderlessButton)
+                .font(.caption2)
+                .frame(width: 60)
+                .help("Source for this mixer input")
+            }
             Slider(value: store.number("\(base)/pan"), in: -1...1)
                 .controlSize(.mini)
                 .frame(width: 52)
@@ -312,12 +356,73 @@ struct ClockView: View {
             }
             SwiftUI.Section("Clock source") {
                 LabeledContent("Source code", value: "\(Int(store.value("/symphony/clock/source") ?? -1))")
-                LabeledContent("External clock status", value: "\(Int(store.value("/symphony/clock/external") ?? -1))")
                 Text("Choosing the clock source isn't available yet; these are the raw values the box reports.")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
+    }
+}
+
+// MARK: - Profiles
+
+struct ProfilesView: View {
+    @EnvironmentObject var store: Store
+    @State private var newName = ""
+    @State private var confirmOverwrite = false
+    @State private var toDelete: String?
+
+    var body: some View {
+        Form {
+            SwiftUI.Section {
+                HStack {
+                    TextField("Profile name", text: $newName)
+                        .onSubmit(save)
+                    Button("Save Current Setup", action: save)
+                        .disabled(!Store.isValidProfileName(newName.trimmingCharacters(in: .whitespaces)))
+                }
+            } header: {
+                Text("Save")
+            } footer: {
+                Text("A profile stores every setting: monitoring levels, headphone feeds, I/O levels, routing and both mixers.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            SwiftUI.Section("Saved profiles") {
+                if store.profiles.isEmpty {
+                    Text("No profiles yet.").foregroundStyle(.secondary)
+                }
+                ForEach(store.profiles, id: \.self) { name in
+                    HStack {
+                        Image(systemName: name == store.lastProfile ? "checkmark.circle.fill" : "circle")
+                            .foregroundStyle(name == store.lastProfile ? Color.accentColor : .secondary)
+                        Text(name)
+                        Spacer()
+                        Button("Load") { store.loadProfile(name) }
+                        Button("Overwrite") { newName = name; confirmOverwrite = true }
+                        Button(role: .destructive) { toDelete = name } label: { Image(systemName: "trash") }
+                            .buttonStyle(.borderless)
+                            .help("Delete")
+                    }
+                }
+            }
+        }
+        .formStyle(.grouped)
+        .onAppear { store.send("/symphony/profile/list") }
+        .confirmationDialog("Replace the profile \u{201C}\(newName)\u{201D} with the current setup?", isPresented: $confirmOverwrite) {
+            Button("Replace") { store.saveProfile(newName.trimmingCharacters(in: .whitespaces)); newName = "" }
+        }
+        .confirmationDialog("Delete the profile \u{201C}\(toDelete ?? "")\u{201D}?",
+                            isPresented: Binding(get: { toDelete != nil }, set: { if !$0 { toDelete = nil } })) {
+            Button("Delete", role: .destructive) { if let n = toDelete { store.deleteProfile(n) }; toDelete = nil }
+        }
+    }
+
+    private func save() {
+        let name = newName.trimmingCharacters(in: .whitespaces)
+        guard Store.isValidProfileName(name) else { return }
+        if store.profiles.contains(name) { newName = name; confirmOverwrite = true; return }
+        store.saveProfile(name)
+        newName = ""
     }
 }
 
@@ -339,6 +444,17 @@ struct MenuBarView: View {
                 LevelRow(title: "Headphones 1", value: store.level("/symphony/monitor/hp/1/level"))
                 LevelRow(title: "Headphones 2", value: store.level("/symphony/monitor/hp/2/level"))
             }
+            if store.boxConnected && !store.profiles.isEmpty {
+                Picker("Profile", selection: Binding(get: { store.lastProfile ?? "" },
+                                                     set: { if !$0.isEmpty { store.loadProfile($0) } })) {
+                    if store.lastProfile == nil { Text("Choose…").tag("") }
+                    ForEach(store.profiles, id: \.self) { Text($0).tag($0) }
+                }
+            }
+            Divider()
+            Toggle("Mac volume keys control the Symphony", isOn: Binding(get: { VolumeKeys.enabled }, set: { VolumeKeys.enabled = $0 }))
+                .help("When the Symphony is the Mac's sound output, the volume and mute keys change the main out level.")
+            Toggle("Open at login", isOn: Binding(get: { LoginItem.isEnabled }, set: { LoginItem.set($0) }))
             Divider()
             HStack {
                 Button("Open Symphony Control") {

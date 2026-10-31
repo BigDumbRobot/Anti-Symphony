@@ -22,36 +22,45 @@ Command Line Tools are enough (no Xcode needed).
 make install
 ```
 
-This builds everything, puts **Symphony Control** (the Maestro replacement) in `~/Applications`, and installs `symphonyd` as a LaunchAgent for your user: it starts at login and restarts if it ever exits. The log is `~/Library/Logs/symphonyd.log`. Remove it with `make uninstall`.
+This builds everything, puts **Symphony Control** (the Maestro replacement) in `~/Applications`, and installs `symphonyd` as a LaunchAgent for your user: it starts at login and restarts if it ever exits. The log is `~/Library/Logs/symphonyd.log`. Remove it all with `make uninstall`.
 
-What `symphonyd` does:
+Other targets: `make` (build only, warnings are errors), `make test` (hardware tests, see [tests/README.md](tests/README.md)), `make dist` (release zip), `make clean`. The version is in `VERSION`.
 
-- when a Symphony is plugged in or powered on: waits for it to boot, then sends host ready;
-- every 1.3 s: checks host ready is still set and sends it again if the box dropped it;
-- before the Mac sleeps: releases the box, the same as Apogee did; after wake: sends host ready again.
+## What you get
 
-It's a LaunchAgent, so it runs once you log in. Until someone logs in, the box shows "!".
+**symphonyd** (background service)
+- Sends the host-ready handshake when the box connects or finishes booting, and again if the box drops it; releases it around sleep, as Apogee did.
+- Recovers a box that stops answering by resetting the USB connection (no unplugging needed).
+- Keeps a live copy of every setting and serves it over OSC for the app and Companion ([docs/osc.md](docs/osc.md)).
+- Saves your settings and puts them back if the box comes back with defaults (it forgets host-set settings when it reboots).
+- Profiles: save and recall complete setups by name.
 
-## Status (2026-10-30)
+**Symphony Control** (app, plus a menu-bar icon)
+- Monitoring: main out level, mute, dim, mono, speaker set; both headphones' level, mute, dim, mono and feed. Each headphone can mirror any output pair (and follows it if that output is rerouted) or take its own feed: any DAW pair, input pair or mixer.
+- Inputs & Outputs: reference level per analog channel (+4 dBu / −10 dBV), Soft Limit, optical ADAT / S/PDIF.
+- Routing: a source for each output and each channel the Mac records.
+- Mixer: both monitor mixers with source, fader, pan, solo and mute per input, plus return and master.
+- Clock: sample rate (44.1 / 48 / 88.2 / 96 kHz).
+- Profiles: save, load, overwrite, delete; quick load from the menu bar.
+- Mac volume keys control the main out level while the Symphony is the Mac's sound output, with an on-screen level indicator. (macOS's own volume slider stays greyed out: the box has no USB volume control.)
+- Open at login.
 
-- **Working on macOS 26.0.1 (Apple Silicon):** with the handshake sent, the "!" clears and the Symphony appears in audio devices. Apple's driver does the audio, so no audio code of ours is involved.
-- **Control protocol recovered** from Apogee's own daemon: [docs/protocol.md](docs/protocol.md). About 50 controls, all vendor requests on endpoint 0.
-- **USB descriptors decoded**: [docs/device-notes.md](docs/device-notes.md). They have spec errors, but Tahoe accepts them.
+## Status (2026-10-31)
 
-Next:
+Working on macOS 26.0.1 (Apple Silicon), version 0.2.0. The hardware test suite passes (28 checks, measured on real audio through loopback cables).
 
-1. Prove it holds up: playback and recording in a DAW at 48k and 96k, long sessions, sleep/wake, unplug/replug, front-panel power cycle.
-2. Work out value units (volume / gain bytes) and enum names from live readings.
-3. Settings control and OSC in `symphonyd`, then a small control app and a Companion module.
-
-The original plan included our own audio streaming and a Core Audio plug-in. Apple's driver already handles the audio, so those are dropped unless testing finds a problem.
+Known limits:
+- Clock source (internal / word clock) is shown but can't be chosen yet.
+- Level meters: the box's meter command returns nothing over USB.
+- Never read command 0x51 (external clock status): it crashes the box. Nothing here does.
 
 ## Layout
 
 | Path | What |
 | --- | --- |
-| `symphonyd/` | The background service (handshake, device control, OSC), its LaunchAgent and install scripts |
-| `app/` | Symphony Control, the SwiftUI control app (talks to symphonyd over OSC) |
+| `symphonyd/` | The background service (handshake, recovery, device control, OSC, profiles), its LaunchAgent and install scripts |
+| `app/` | Symphony Control, the SwiftUI control app (Swift package; talks to symphonyd over OSC) |
+| `tests/` | Hardware test suite and the `symtest` audio measurement tool |
 | `avbbridge/` | Optional: puts the Symphony's channels on AVB through the Mac (parked) |
 | `docs/osc.md` | OSC addresses, for Companion and other controllers |
 | `lib/symusb.*` | Shared USB access with the command allowlist |
