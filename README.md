@@ -63,6 +63,7 @@ Known limits:
 | `tests/` | Hardware test suite and the `symtest` audio measurement tool |
 | `avbbridge/` | Optional: puts the Symphony's channels on AVB through the Mac (parked) |
 | `docs/osc.md` | OSC addresses, for Companion and other controllers |
+| `docs/input-processor.md` | Design: UAD-style input processor (Pink Spider-DMP) for any interface, Symphony first |
 | `lib/symusb.*` | Shared USB access with the command allowlist |
 | `tools/symctl/` | Command-line control of the Symphony |
 | `tools/usbdesc/` | Dumps the device's USB descriptors (read-only) |
