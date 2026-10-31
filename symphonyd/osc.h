@@ -26,5 +26,8 @@ bool osc_parse(const uint8_t *buf, size_t len, OscMsg *m);
 // (int, double, const char *). Returns the length, or 0 if it doesn't fit.
 size_t osc_build(uint8_t *buf, size_t cap, const char *path, const char *types, ...);
 
+// Builds a message whose arguments are n floats (n <= 64), e.g. a set of meter levels.
+size_t osc_build_floats(uint8_t *buf, size_t cap, const char *path, const float *v, int n);
+
 // Numeric value of an argument (i or f), for handlers that accept either.
 double osc_num(const OscArg *a);

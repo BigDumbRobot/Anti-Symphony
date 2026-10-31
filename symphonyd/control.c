@@ -69,6 +69,14 @@ static double gLastSave;
 typedef struct { struct sockaddr_storage a; socklen_t len; double expires; } Sub;
 static Sub gSubs[MAX_SUBS];
 
+// Input meters: read from the box (meter group 0) about 15 times a second, but only while some
+// client has asked for them (/symphony/meters/subscribe, renewed every few seconds).
+#define METER_SUBS 8
+#define METER_SECONDS 12.0
+static Sub gMeterSubs[METER_SUBS];
+static dispatch_source_t gMeterTimer;
+static bool gMeterRunning;
+
 static double now(void) {
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
@@ -387,6 +395,57 @@ static bool setSampleRate(double rate) {
     return false;
 }
 
+// ---- meters ----
+
+static bool meterSubscribers(void) {
+    double t = now();
+    for (int i = 0; i < METER_SUBS; i++)
+        if (gMeterSubs[i].len && gMeterSubs[i].expires > t) return true;
+    return false;
+}
+
+// Group 0 is 32 little-endian 16-bit values: linear level with full scale at 32768, behaving
+// like an RMS reading with front-panel decay (checked against measured tones). Sent as dBFS
+// such that a full-scale sine reads 0, for board 1's 16 inputs then board 2's.
+static void meterTick(void) {
+    if (!gDev || !meterSubscribers()) {
+        if (gMeterRunning) { dispatch_suspend(gMeterTimer); gMeterRunning = false; }
+        return;
+    }
+    uint8_t b[64];
+    if (sym_read(gDev, 0x30, 0, b, sizeof b) != sizeof b) return;
+    float db[32];
+    for (int i = 0; i < 32; i++) {
+        int v = b[2 * i] | b[2 * i + 1] << 8;
+        db[i] = v > 0 ? (float)(20 * log10(v / 23170.475)) : -120.0f;
+        if (db[i] < -120) db[i] = -120;
+    }
+    uint8_t buf[256];
+    size_t n = osc_build_floats(buf, sizeof buf, "/symphony/meters/in", db, 32);
+    double t = now();
+    for (int i = 0; i < METER_SUBS; i++)
+        if (gMeterSubs[i].len && gMeterSubs[i].expires > t) sendTo(&gMeterSubs[i].a, gMeterSubs[i].len, buf, n);
+}
+
+static void meterSubscribe(const struct sockaddr_storage *a, socklen_t len) {
+    Sub *slot = NULL;
+    double t = now();
+    for (int i = 0; i < METER_SUBS && !slot; i++)
+        if (gMeterSubs[i].len == len && !memcmp(&gMeterSubs[i].a, a, len)) slot = &gMeterSubs[i];
+    for (int i = 0; i < METER_SUBS && !slot; i++)
+        if (!gMeterSubs[i].len || gMeterSubs[i].expires <= t) slot = &gMeterSubs[i];
+    if (!slot) return;
+    slot->a = *a;
+    slot->len = len;
+    slot->expires = t + METER_SECONDS;
+    if (!gMeterTimer) {
+        gMeterTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, dispatch_get_main_queue());
+        dispatch_source_set_timer(gMeterTimer, DISPATCH_TIME_NOW, NSEC_PER_SEC / 15, NSEC_PER_SEC / 100);
+        dispatch_source_set_event_handler(gMeterTimer, ^{ meterTick(); });
+    }
+    if (!gMeterRunning) { dispatch_resume(gMeterTimer); gMeterRunning = true; }
+}
+
 // ---- profiles ----
 // A profile is every settable value plus the headphone mirror choices, saved as a text file
 // ("<address> <raw value>" per line) in ~/Library/Application Support/Anti-Symphony/profiles.
@@ -518,6 +577,7 @@ static void handle(const OscMsg *m, const struct sockaddr_storage *from, socklen
     if (!strcmp(path, "/symphony/dump")) { sendState(from, flen); return; }
 
     if (!strcmp(path, "/symphony/profile/list")) { sendProfiles(from, flen); return; }
+    if (!strcmp(path, "/symphony/meters/subscribe")) { meterSubscribe(from, flen); return; }
     if (!strcmp(path, "/symphony/profile/delete")) {
         char file[600];
         if (m->argc < 1 || m->argv[0].type != 's' || !validName(m->argv[0].s)) { sendError(from, flen, path, "no such profile"); return; }

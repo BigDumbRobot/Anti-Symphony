@@ -6,12 +6,12 @@ struct SymphonyControlApp: App {
 
     var body: some Scene {
         Window("Symphony Control", id: "main") {
-            ContentView().environmentObject(store)
+            ContentView().environmentObject(store).environmentObject(store.meters)
         }
         .defaultSize(width: 900, height: 640)
 
         MenuBarExtra("Symphony", systemImage: "hifispeaker.fill") {
-            MenuBarView().environmentObject(store)
+            MenuBarView().environmentObject(store).environmentObject(store.meters)
         }
         .menuBarExtraStyle(.window)
     }

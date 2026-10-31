@@ -97,7 +97,7 @@ Every control is a vendor control transfer on endpoint 0, device recipient:
 | 0xFF | 0 | 4 | system ready (read). `DAE5C4A1` once booted; Apogee polls until it sees that |
 | 0x28 | 1 | 12 | parameter updates: front-panel changes (polled about every 1.3 s). Bytes 0–3 big-endian sample rate (`0000BB80` = 48000) |
 | 0x2B | 0 | 1 | pop-up needs update (read) |
-| 0x30 | group | 0x40 or 0x20 | TDM meter data (read). Groups 0, 1 = 64 bytes, 2 = 32. Reads all zero over USB, even with a tone playing and Apogee's default metering mode set (0x10 0 = 2, 0x10 1 = 3); probably only filled on the PCIe/TDM path |
+| 0x30 | group | 0x40 or 0x20 | meter data (read). **Group 0 = input meters**: 32 little-endian 16-bit values (board 1 inputs 1–16, then board 2), linear with full scale 32768, RMS-like with front-panel decay; matches measured levels within 0.1 dB on a sine. Safe: 15,644 reads in 2 minutes. Group 1 (outputs) reads zero over USB in every front-panel meter mode; group 2 (32 bytes) returns constant data |
 | 0x10 | n | 1 | front panel metering mode (write) |
 | 0x11 / 0x12 | 0 | 1 | front panel peak / over hold mode (write) |
 | 0x13 | 0 | 1 | clear front panel meters (write) |

@@ -37,21 +37,21 @@ Other targets: `make` (build only, warnings are errors), `make test` (hardware t
 
 **Symphony Control** (app, plus a menu-bar icon)
 - Monitoring: main out level, mute, dim, mono, speaker set; both headphones' level, mute, dim, mono and feed. Each headphone can mirror any output pair (and follows it if that output is rerouted) or take its own feed: any DAW pair, input pair or mixer.
-- Inputs & Outputs: reference level per analog channel (+4 dBu / −10 dBV), Soft Limit, optical ADAT / S/PDIF.
+- Inputs & Outputs: input meters, reference level per analog channel (+4 dBu / −10 dBV), Soft Limit, optical ADAT / S/PDIF.
+- Input meters also on mixer strips and routing rows fed by an input.
 - Routing: a source for each output and each channel the Mac records.
 - Mixer: both monitor mixers with source, fader, pan, solo and mute per input, plus return and master.
-- Clock: sample rate (44.1 / 48 / 88.2 / 96 kHz).
+- Clock: sample rate (44.1 / 48 / 88.2 / 96 kHz). The clock source is chosen on the box (hold a rotary encoder).
 - Profiles: save, load, overwrite, delete; quick load from the menu bar.
 - Mac volume keys control the main out level while the Symphony is the Mac's sound output, with an on-screen level indicator. (macOS's own volume slider stays greyed out: the box has no USB volume control.)
 - Open at login.
 
 ## Status (2026-10-31)
 
-Working on macOS 26.0.1 (Apple Silicon), version 0.2.0. The hardware test suite passes (28 checks, measured on real audio through loopback cables).
+Working on macOS 26.0.1 (Apple Silicon), version 0.3.0. The hardware test suite passes (29 checks, measured on real audio through loopback cables).
 
 Known limits:
-- Clock source (internal / word clock) is shown but can't be chosen yet.
-- Level meters: the box's meter command returns nothing over USB.
+- Output meters: the box only sends input meters over USB.
 - Never read command 0x51 (external clock status): it crashes the box. Nothing here does.
 
 ## Layout

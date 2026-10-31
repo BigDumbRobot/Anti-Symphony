@@ -85,6 +85,7 @@ class Osc:
         self.values = {}
         self.errors = []
         self.seen = {}           # path -> time of last message
+        self.meters_last = None
         self.new_socket()
 
     def new_socket(self):
@@ -114,6 +115,10 @@ class Osc:
             except (ValueError, struct.error):
                 continue
             self.seen[path] = time.time()
+            if path == "/symphony/meters/in":
+                self.meters_last = args
+                self.values[path] = args[0] if args else None
+                continue
             if path == "/symphony/error":
                 self.errors.append(tuple(args))
             elif args:
@@ -523,6 +528,28 @@ class Suite:
         assert approx(d_out, 11.8, 1.0), "output: code 2 vs 1 differ by %.1f dB, expected 11.8" % d_out
         return "+4 dBu vs -10 dBV: inputs %.1f dB, outputs %.1f dB apart (expected 11.8)" % (d_in, d_out)
 
+    def t_meters(self):
+        """The box's input meters (streamed by symphonyd) agree with levels measured on the Mac."""
+        self.osc.send("/symphony/meters/subscribe")
+        self.osc.pump(1.5)
+        got = []
+        for _ in range(3):
+            m = self.audio.measure(400, 0.3)
+            self.osc.send("/symphony/meters/subscribe")
+            self.osc.values.pop("/symphony/meters/in", None)
+            t0 = time.time()
+            while time.time() - t0 < 1 and "/symphony/meters/in" not in self.osc.values:
+                self.osc.pump(0.05)
+            got.append((m, self.osc.meters_last))
+        m, meter = got[-1]
+        assert meter and len(meter) == 32, "no meter data from symphonyd"
+        d1 = meter[0] - m.rms[0]          # In 1: headphone, a clean sine pair
+        silent = meter[3]                  # In 4: nothing connected
+        assert abs(d1) < 1.5, "In 1 meter %.1f dBFS vs measured %.1f" % (meter[0], m.rms[0])
+        assert silent < -60, "In 4 (nothing connected) meters %.1f dBFS" % silent
+        return "In 1 meter %.1f vs measured %.1f dBFS; In 3 %.1f vs %.1f; empty In 4 %.0f dBFS" % (
+            meter[0], m.rms[0], meter[2], m.rms[2], silent)
+
     def t_softlimit(self):
         p = "/symphony/io/analog/in/3/softlimit"
         start = self.osc.get(p)
@@ -781,6 +808,7 @@ def main():
             ("routing: output", s.t_route_output),
             ("routing: recording channel", s.t_route_record),
             ("analog reference levels", s.t_ref_levels),
+            ("input meters", s.t_meters),
             ("soft limit", s.t_softlimit),
             ("optical format", s.t_optical_format),
             ("mixer 1", s.t_mixer1),

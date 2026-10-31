@@ -58,8 +58,11 @@ Sources: 32–39 Analog In 1–8, 40–47 Optical In 1–8, 192–207 DAW 1–16
 | Address | Value |
 | --- | --- |
 | `/symphony/clock/rate` | 44100, 48000, 88200 or 96000 (set through Core Audio) |
-| `/symphony/clock/source` | read-only, raw |
 | `/symphony/identify` | 1/0: blink the front panel |
+
+## Meters
+
+Send `/symphony/meters/subscribe` (and again every few seconds while you want them) to receive `/symphony/meters/in` about 15 times a second: 32 floats in dBFS (a full-scale sine reads 0), board 1's inputs 1–16 (Analog In 1–8, Optical In 1–8) then board 2's. symphonyd only reads the meters while someone is subscribed. The box doesn't send output meters over USB.
 
 ## Profiles
 

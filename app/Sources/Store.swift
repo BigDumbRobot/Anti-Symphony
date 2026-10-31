@@ -17,6 +17,7 @@ final class Store: ObservableObject {
     private var localEdits: [String: Date] = [:]
     private var timer: Timer?
     private var volumeKeys: VolumeKeys?
+    let meters = Meters()
 
     init() {
         client.onMessage = { [weak self] in self?.handle($0) }
@@ -24,6 +25,7 @@ final class Store: ObservableObject {
         subscribe()
         timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in self?.tick() }
         volumeKeys = VolumeKeys(store: self)
+        meters.subscribe = { [weak self] in self?.send("/symphony/meters/subscribe") }
     }
 
     // MARK: sync
@@ -52,6 +54,8 @@ final class Store: ObservableObject {
         switch m.path {
         case "/symphony/connected":
             boxConnected = (m.args.first?.double ?? 0) != 0
+        case "/symphony/meters/in":
+            meters.update(m.args.compactMap { $0.double })
         case "/symphony/profiles":
             if case .string(let names)? = m.args.first {
                 profiles = names.split(separator: "\n").map(String.init)

@@ -183,6 +183,7 @@ extension MonitoringView {
 
 struct IOView: View {
     @EnvironmentObject var store: Store
+    @EnvironmentObject var meters: Meters
 
     var body: some View {
         Form {
@@ -190,6 +191,7 @@ struct IOView: View {
                 Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 8) {
                     GridRow {
                         Text("Channel").foregroundStyle(.secondary)
+                        Text("Input").foregroundStyle(.secondary)
                         Text("Input level").foregroundStyle(.secondary)
                         Text("Soft Limit").foregroundStyle(.secondary)
                         Text("Output level").foregroundStyle(.secondary)
@@ -197,6 +199,7 @@ struct IOView: View {
                     ForEach(1...8, id: \.self) { c in
                         GridRow {
                             Text("Analog \(c)")
+                            MeterBar(db: meters.input[c - 1]).frame(width: 110)
                             refPicker("/symphony/io/analog/in/\(c)/ref", Names.inputRefLevels)
                             Toggle("", isOn: store.flag("/symphony/io/analog/in/\(c)/softlimit")).labelsHidden()
                             refPicker("/symphony/io/analog/out/\(c)/ref", Names.outputRefLevels)
@@ -216,9 +219,23 @@ struct IOView: View {
                 }
                 .pickerStyle(.segmented)
                 .frame(maxWidth: 260)
+                Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 6) {
+                    ForEach(0..<2, id: \.self) { row in
+                        GridRow {
+                            ForEach(1...4, id: \.self) { k in
+                                let c = row * 4 + k
+                                HStack(spacing: 6) {
+                                    Text("In \(c)").font(.caption).foregroundStyle(.secondary).frame(width: 34, alignment: .leading)
+                                    MeterBar(db: meters.input[7 + c]).frame(width: 70)
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
         .formStyle(.grouped)
+        .wantsMeters()
     }
 
     private func refPicker(_ path: String, _ levels: [Names.Item]) -> some View {
@@ -238,6 +255,7 @@ struct IOView: View {
 
 struct RoutingView: View {
     @EnvironmentObject var store: Store
+    @EnvironmentObject var meters: Meters
 
     var body: some View {
         Form {
@@ -249,16 +267,22 @@ struct RoutingView: View {
             }
         }
         .formStyle(.grouped)
+        .wantsMeters()
     }
 
     private func row(_ dest: Names.Item) -> some View {
         let path = "/symphony/route/\(dest.id)"
         let current = Int(store.value(path) ?? -1)
-        return Picker(dest.name, selection: store.choice(path)) {
-            ForEach(Names.sources) { Text($0.name).tag($0.id) }
-            if current >= 0, !Names.sources.contains(where: { $0.id == current }) {
-                Text(Names.source(current)).tag(current)
+        return HStack {
+            Picker(dest.name, selection: store.choice(path)) {
+                ForEach(Names.sources) { Text($0.name).tag($0.id) }
+                if current >= 0, !Names.sources.contains(where: { $0.id == current }) {
+                    Text(Names.source(current)).tag(current)
+                }
             }
+            MeterBar(db: meters.level(forSource: current) ?? -120)
+                .frame(width: 60)
+                .opacity(meters.level(forSource: current) == nil ? 0.25 : 1)
         }
     }
 }
@@ -292,11 +316,13 @@ struct MixerView: View {
                 .padding()
             }
         }
+        .wantsMeters()
     }
 }
 
 struct Strip: View {
     @EnvironmentObject var store: Store
+    @EnvironmentObject var meters: Meters
     let title: String
     let base: String
     var route: String? = nil
@@ -321,8 +347,14 @@ struct Strip: View {
                 .controlSize(.mini)
                 .frame(width: 52)
                 .help("Pan")
-            VerticalFader(value: fader)
-                .frame(width: 52, height: 220)
+            HStack(spacing: 4) {
+                VerticalFader(value: fader)
+                    .frame(width: 44, height: 220)
+                if let route, let db = meters.level(forSource: Int(store.value(route) ?? -1)) {
+                    VerticalMeter(db: db).frame(height: 220)
+                }
+            }
+            .frame(width: 56)
             Text(dbText(fader.wrappedValue, floor: -48)).font(.caption2).monospacedDigit()
             if soloMute {
                 HStack(spacing: 2) {
@@ -355,9 +387,8 @@ struct ClockView: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
             SwiftUI.Section("Clock source") {
-                LabeledContent("Source code", value: "\(Int(store.value("/symphony/clock/source") ?? -1))")
-                Text("Choosing the clock source isn't available yet; these are the raw values the box reports.")
-                    .font(.caption).foregroundStyle(.secondary)
+                Text("The clock source (internal, word clock, digital input) is chosen on the Symphony itself: hold one of the rotary encoders.")
+                    .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)

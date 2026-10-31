@@ -99,6 +99,21 @@ size_t osc_build(uint8_t *buf, size_t cap, const char *path, const char *types, 
     return ok ? pos : 0;
 }
 
+size_t osc_build_floats(uint8_t *buf, size_t cap, const char *path, const float *v, int n) {
+    char tags[66] = ",";
+    if (n < 0 || n > 64) return 0;
+    for (int i = 0; i < n; i++) tags[i + 1] = 'f';
+    tags[n + 1] = 0;
+    size_t pos = 0;
+    if (!putString(buf, cap, &pos, path) || !putString(buf, cap, &pos, tags)) return 0;
+    for (int i = 0; i < n; i++) {
+        uint32_t u;
+        memcpy(&u, &v[i], 4);
+        if (!put32(buf, cap, &pos, u)) return 0;
+    }
+    return pos;
+}
+
 double osc_num(const OscArg *a) {
     return a->type == 'f' ? a->f : a->i;
 }
