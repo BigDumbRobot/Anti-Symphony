@@ -4,7 +4,7 @@ Makes the **Apogee Symphony I/O Mk1** work over USB on macOS versions Apogee no 
 
 - the Symphony working as a normal Core Audio device in Logic, Pro Tools and the rest;
 - Maestro-style device control (levels, gain, routing, mixer, clock);
-- OSC for all controls, so Bitfocus Companion can drive it.
+- OSC control plus a custom Bitfocus Companion module with ready-made actions and feedbacks.
 
 No kernel extension, no root, no Apple entitlements.
 
@@ -60,6 +60,7 @@ Known limits:
 | --- | --- |
 | `symphonyd/` | The background service (handshake, recovery, device control, OSC, profiles), its LaunchAgent and install scripts |
 | `app/` | Symphony Control, the SwiftUI control app (Swift package; talks to symphonyd over OSC) |
+| `companion/` | Custom Bitfocus Companion module with native actions and ready-made presets for Symphony controls |
 | `tests/` | Hardware test suite and the `symtest` audio measurement tool |
 | `avbbridge/` | Optional: puts the Symphony's channels on AVB through the Mac (parked) |
 | `docs/osc.md` | OSC addresses, for Companion and other controllers |

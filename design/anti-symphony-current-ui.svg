@@ -1,0 +1,219 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="4440" height="1900" viewBox="0 0 4440 1900">
+  <style>
+    .canvas { fill: #17191c; }
+    .window { fill: #202327; stroke: #41454b; stroke-width: 1; }
+    .titlebar { fill: #292d32; }
+    .sidebar { fill: #202327; }
+    .panel { fill: #292d32; }
+    .panel2 { fill: #30343a; }
+    .line { stroke: #41454b; stroke-width: 1; }
+    .text { fill: #f0f1f3; font: 14px -apple-system, BlinkMacSystemFont, sans-serif; }
+    .small { fill: #a7adb5; font: 11px -apple-system, BlinkMacSystemFont, sans-serif; }
+    .tiny { fill: #a7adb5; font: 9px -apple-system, BlinkMacSystemFont, sans-serif; }
+    .heading { fill: #f0f1f3; font: 600 19px -apple-system, BlinkMacSystemFont, sans-serif; }
+    .section { fill: #f0f1f3; font: 600 14px -apple-system, BlinkMacSystemFont, sans-serif; }
+    .accent { fill: #3978e8; }
+    .green { fill: #46c878; }
+    .button { fill: #3a3f46; stroke: #4a5058; stroke-width: 1; }
+    .stroke { stroke: #666d77; stroke-width: 1; }
+  </style>
+
+  <rect class="canvas" width="4440" height="1900"/>
+
+  <g id="Monitoring" transform="translate(0 0)">
+    <rect class="window" x="0" y="0" width="1440" height="900" rx="14"/>
+    <path class="titlebar" d="M14 0h1412a14 14 0 0 1 14 14v34H0V14A14 14 0 0 1 14 0z"/>
+    <circle cx="22" cy="24" r="6" fill="#ff6259"/><circle cx="42" cy="24" r="6" fill="#ffc14a"/><circle cx="62" cy="24" r="6" fill="#45c65a"/>
+    <text class="text" x="720" y="29" text-anchor="middle" font-weight="600">Symphony Control</text>
+    <rect class="sidebar" x="0" y="48" width="228" height="852"/>
+    <text class="small" x="24" y="82" font-weight="600">SYMPHONY CONTROL</text>
+    <g class="text">
+      <rect class="accent" x="12" y="102" width="204" height="38" rx="7"/><text x="44" y="126">◖ Monitoring</text>
+      <text x="44" y="170">⌁ Inputs &amp; Outputs</text><text x="44" y="210">⑂ Routing</text>
+      <text x="44" y="250">☷ Mixer</text><text x="44" y="290">◷ Clock</text><text x="44" y="330">▤ Profiles</text>
+    </g>
+    <line class="line" x1="0" y1="850" x2="228" y2="850"/>
+    <circle class="green" cx="26" cy="872" r="5"/><text class="small" x="40" y="876">Connected</text>
+    <text class="heading" x="260" y="88">Monitoring</text>
+    <g transform="translate(260 116)">
+      <rect class="panel" width="1120" height="180" rx="12"/>
+      <text class="section" x="22" y="30">Main out</text><text class="small" x="22" y="70">Level</text>
+      <rect x="320" y="56" width="570" height="8" rx="4" fill="#444a52"/><rect class="accent" x="320" y="56" width="410" height="8" rx="4"/><circle cx="730" cy="60" r="10" fill="#e1e4e8"/>
+      <text class="text" x="910" y="66">−25 dB</text>
+      <line class="line" x1="20" y1="91" x2="1100" y2="91"/>
+      <rect class="button" x="22" y="108" width="76" height="36" rx="7"/><text class="text" x="60" y="131" text-anchor="middle">Mute</text>
+      <rect class="button" x="108" y="108" width="72" height="36" rx="7"/><text class="text" x="144" y="131" text-anchor="middle">Dim</text>
+      <rect class="button" x="190" y="108" width="78" height="36" rx="7"/><text class="text" x="229" y="131" text-anchor="middle">Mono</text>
+      <text class="small" x="300" y="131">Speaker set</text><rect class="button" x="420" y="108" width="116" height="36" rx="7"/><text class="text" x="478" y="131" text-anchor="middle">1 　⌃</text>
+    </g>
+    <g transform="translate(260 316)">
+      <rect class="panel" width="1120" height="184" rx="12"/>
+      <text class="section" x="22" y="30">Headphones 1</text><text class="small" x="22" y="70">Level</text>
+      <rect x="320" y="56" width="570" height="8" rx="4" fill="#444a52"/><rect class="accent" x="320" y="56" width="360" height="8" rx="4"/><circle cx="680" cy="60" r="10" fill="#e1e4e8"/><text class="text" x="910" y="66">−20 dB</text>
+      <line class="line" x1="20" y1="91" x2="1100" y2="91"/>
+      <rect class="button" x="22" y="104" width="76" height="34" rx="7"/><text class="text" x="60" y="126" text-anchor="middle">Mute</text>
+      <rect class="button" x="108" y="104" width="72" height="34" rx="7"/><text class="text" x="144" y="126" text-anchor="middle">Dim</text>
+      <rect class="button" x="190" y="104" width="78" height="34" rx="7"/><text class="text" x="229" y="126" text-anchor="middle">Mono</text>
+      <line class="line" x1="20" y1="150" x2="1100" y2="150"/><text class="small" x="22" y="172">Feed</text><text class="text" x="1045" y="172" text-anchor="end">DAW 1–2　⌄</text>
+    </g>
+    <g transform="translate(260 520)">
+      <rect class="panel" width="1120" height="184" rx="12"/>
+      <text class="section" x="22" y="30">Headphones 2</text><text class="small" x="22" y="70">Level</text>
+      <rect x="320" y="56" width="570" height="8" rx="4" fill="#444a52"/><rect class="accent" x="320" y="56" width="360" height="8" rx="4"/><circle cx="680" cy="60" r="10" fill="#e1e4e8"/><text class="text" x="910" y="66">−20 dB</text>
+      <line class="line" x1="20" y1="91" x2="1100" y2="91"/>
+      <rect class="button" x="22" y="104" width="76" height="34" rx="7"/><text class="text" x="60" y="126" text-anchor="middle">Mute</text>
+      <rect class="button" x="108" y="104" width="72" height="34" rx="7"/><text class="text" x="144" y="126" text-anchor="middle">Dim</text>
+      <rect class="button" x="190" y="104" width="78" height="34" rx="7"/><text class="text" x="229" y="126" text-anchor="middle">Mono</text>
+      <line class="line" x1="20" y1="150" x2="1100" y2="150"/><text class="small" x="22" y="172">Feed</text><text class="text" x="1045" y="172" text-anchor="end">DAW 7–8　⌄</text>
+    </g>
+    <g transform="translate(260 730)">
+      <rect class="panel" width="1120" height="96" rx="12"/>
+      <text class="small" x="20" y="29">Mirroring follows the selected output; an own feed is independent.</text>
+      <rect class="button" x="20" y="46" width="236" height="34" rx="7"/><text class="text" x="138" y="68" text-anchor="middle">Identify (blink front panel)</text>
+    </g>
+  </g>
+
+  <g id="Inputs and Outputs" transform="translate(1500 0)">
+    <rect class="window" x="0" y="0" width="1440" height="900" rx="14"/>
+    <path class="titlebar" d="M14 0h1412a14 14 0 0 1 14 14v34H0V14A14 14 0 0 1 14 0z"/>
+    <circle cx="22" cy="24" r="6" fill="#ff6259"/><circle cx="42" cy="24" r="6" fill="#ffc14a"/><circle cx="62" cy="24" r="6" fill="#45c65a"/>
+    <text class="text" x="720" y="29" text-anchor="middle" font-weight="600">Symphony Control</text>
+    <rect class="sidebar" x="0" y="48" width="228" height="852"/>
+    <text class="small" x="24" y="82" font-weight="600">SYMPHONY CONTROL</text>
+    <g class="text"><text x="44" y="126">◖ Monitoring</text><rect class="accent" x="12" y="142" width="204" height="38" rx="7"/><text x="44" y="167">⌁ Inputs &amp; Outputs</text><text x="44" y="210">⑂ Routing</text><text x="44" y="250">☷ Mixer</text><text x="44" y="290">◷ Clock</text><text x="44" y="330">▤ Profiles</text></g>
+    <line class="line" x1="0" y1="850" x2="228" y2="850"/><circle class="green" cx="26" cy="872" r="5"/><text class="small" x="40" y="876">Connected</text>
+    <text class="heading" x="260" y="88">Inputs &amp; Outputs</text>
+    <rect class="panel" x="260" y="112" width="1120" height="504" rx="12"/>
+    <text class="section" x="284" y="146">Analog (8x8 Analog-Optical)</text>
+    <text class="small" x="284" y="182">Channel</text><text class="small" x="470" y="182">Input</text><text class="small" x="672" y="182">Input level</text><text class="small" x="842" y="182">Soft Limit</text><text class="small" x="1080" y="182">Output level</text>
+    <g class="line">
+      <line x1="282" y1="195" x2="1358" y2="195"/><line x1="282" y1="242" x2="1358" y2="242"/><line x1="282" y1="289" x2="1358" y2="289"/><line x1="282" y1="336" x2="1358" y2="336"/><line x1="282" y1="383" x2="1358" y2="383"/><line x1="282" y1="430" x2="1358" y2="430"/><line x1="282" y1="477" x2="1358" y2="477"/><line x1="282" y1="524" x2="1358" y2="524"/><line x1="282" y1="571" x2="1358" y2="571"/>
+    </g>
+    <g class="text">
+      <text x="284" y="225">Analog 1</text><text x="284" y="272">Analog 2</text><text x="284" y="319">Analog 3</text><text x="284" y="366">Analog 4</text><text x="284" y="413">Analog 5</text><text x="284" y="460">Analog 6</text><text x="284" y="507">Analog 7</text><text x="284" y="554">Analog 8</text>
+    </g>
+    <g>
+      <rect class="panel2" x="444" y="207" width="150" height="26" rx="5"/><rect class="panel2" x="444" y="254" width="150" height="26" rx="5"/><rect class="panel2" x="444" y="301" width="150" height="26" rx="5"/><rect class="panel2" x="444" y="348" width="150" height="26" rx="5"/><rect class="panel2" x="444" y="395" width="150" height="26" rx="5"/><rect class="panel2" x="444" y="442" width="150" height="26" rx="5"/><rect class="panel2" x="444" y="489" width="150" height="26" rx="5"/><rect class="panel2" x="444" y="536" width="150" height="26" rx="5"/>
+      <rect class="accent" x="673" y="217" width="88" height="7" rx="3"/><rect class="accent" x="673" y="264" width="66" height="7" rx="3"/><rect class="accent" x="673" y="311" width="102" height="7" rx="3"/><rect class="accent" x="673" y="358" width="75" height="7" rx="3"/>
+      <rect class="panel2" x="810" y="207" width="116" height="26" rx="5"/><rect class="panel2" x="810" y="254" width="116" height="26" rx="5"/><rect class="panel2" x="810" y="301" width="116" height="26" rx="5"/><rect class="panel2" x="810" y="348" width="116" height="26" rx="5"/><rect class="panel2" x="810" y="395" width="116" height="26" rx="5"/><rect class="panel2" x="810" y="442" width="116" height="26" rx="5"/><rect class="panel2" x="810" y="489" width="116" height="26" rx="5"/><rect class="panel2" x="810" y="536" width="116" height="26" rx="5"/>
+      <text class="small" x="455" y="225">+4 dBu　⌄</text><text class="small" x="455" y="272">+4 dBu　⌄</text><text class="small" x="455" y="319">−10 dBV　⌄</text><text class="small" x="455" y="366">+4 dBu　⌄</text><text class="small" x="455" y="413">+4 dBu　⌄</text><text class="small" x="455" y="460">+4 dBu　⌄</text><text class="small" x="455" y="507">+4 dBu　⌄</text><text class="small" x="455" y="554">+4 dBu　⌄</text>
+      <rect x="862" y="214" width="13" height="13" rx="3" fill="#3978e8"/><rect x="862" y="261" width="13" height="13" rx="3" fill="#454b53"/><rect x="862" y="308" width="13" height="13" rx="3" fill="#3978e8"/><rect x="862" y="355" width="13" height="13" rx="3" fill="#454b53"/><rect x="862" y="402" width="13" height="13" rx="3" fill="#3978e8"/><rect x="862" y="449" width="13" height="13" rx="3" fill="#454b53"/><rect x="862" y="496" width="13" height="13" rx="3" fill="#3978e8"/><rect x="862" y="543" width="13" height="13" rx="3" fill="#454b53"/>
+      <rect class="panel2" x="1058" y="207" width="150" height="26" rx="5"/><rect class="panel2" x="1058" y="254" width="150" height="26" rx="5"/><rect class="panel2" x="1058" y="301" width="150" height="26" rx="5"/><rect class="panel2" x="1058" y="348" width="150" height="26" rx="5"/><rect class="panel2" x="1058" y="395" width="150" height="26" rx="5"/><rect class="panel2" x="1058" y="442" width="150" height="26" rx="5"/><rect class="panel2" x="1058" y="489" width="150" height="26" rx="5"/><rect class="panel2" x="1058" y="536" width="150" height="26" rx="5"/>
+      <text class="small" x="1069" y="225">+4 dBu　⌄</text><text class="small" x="1069" y="272">+4 dBu　⌄</text><text class="small" x="1069" y="319">+4 dBu　⌄</text><text class="small" x="1069" y="366">+4 dBu　⌄</text><text class="small" x="1069" y="413">+4 dBu　⌄</text><text class="small" x="1069" y="460">+4 dBu　⌄</text><text class="small" x="1069" y="507">+4 dBu　⌄</text><text class="small" x="1069" y="554">+4 dBu　⌄</text>
+    </g>
+    <rect class="panel" x="260" y="634" width="1120" height="190" rx="12"/>
+    <text class="section" x="284" y="670">Optical</text><text class="small" x="284" y="710">Format</text>
+    <rect class="accent" x="360" y="688" width="106" height="34" rx="7"/><text class="text" x="413" y="710" text-anchor="middle">ADAT</text><rect class="button" x="466" y="688" width="106" height="34" rx="7"/><text class="small" x="519" y="710" text-anchor="middle">S/PDIF</text>
+    <g class="small"><text x="284" y="760">In 1</text><text x="510" y="760">In 2</text><text x="736" y="760">In 3</text><text x="962" y="760">In 4</text><text x="284" y="798">In 5</text><text x="510" y="798">In 6</text><text x="736" y="798">In 7</text><text x="962" y="798">In 8</text></g>
+    <g fill="#444a52"><rect x="330" y="750" width="150" height="7" rx="3"/><rect x="556" y="750" width="150" height="7" rx="3"/><rect x="782" y="750" width="150" height="7" rx="3"/><rect x="1008" y="750" width="150" height="7" rx="3"/><rect x="330" y="788" width="150" height="7" rx="3"/><rect x="556" y="788" width="150" height="7" rx="3"/><rect x="782" y="788" width="150" height="7" rx="3"/><rect x="1008" y="788" width="150" height="7" rx="3"/></g>
+  </g>
+
+  <g id="Routing" transform="translate(3000 0)">
+    <rect class="window" x="0" y="0" width="1440" height="900" rx="14"/>
+    <path class="titlebar" d="M14 0h1412a14 14 0 0 1 14 14v34H0V14A14 14 0 0 1 14 0z"/>
+    <circle cx="22" cy="24" r="6" fill="#ff6259"/><circle cx="42" cy="24" r="6" fill="#ffc14a"/><circle cx="62" cy="24" r="6" fill="#45c65a"/>
+    <text class="text" x="720" y="29" text-anchor="middle" font-weight="600">Symphony Control</text>
+    <rect class="sidebar" x="0" y="48" width="228" height="852"/><text class="small" x="24" y="82" font-weight="600">SYMPHONY CONTROL</text>
+    <g class="text"><text x="44" y="126">◖ Monitoring</text><text x="44" y="167">⌁ Inputs &amp; Outputs</text><rect class="accent" x="12" y="184" width="204" height="38" rx="7"/><text x="44" y="209">⑂ Routing</text><text x="44" y="250">☷ Mixer</text><text x="44" y="290">◷ Clock</text><text x="44" y="330">▤ Profiles</text></g>
+    <line class="line" x1="0" y1="850" x2="228" y2="850"/><circle class="green" cx="26" cy="872" r="5"/><text class="small" x="40" y="876">Connected</text>
+    <text class="heading" x="260" y="88">Routing</text>
+    <rect class="panel" x="260" y="112" width="1120" height="332" rx="12"/><text class="section" x="284" y="146">Outputs</text>
+    <g class="line"><line x1="284" y1="161" x2="1354" y2="161"/><line x1="284" y1="197" x2="1354" y2="197"/><line x1="284" y1="233" x2="1354" y2="233"/><line x1="284" y1="269" x2="1354" y2="269"/><line x1="284" y1="305" x2="1354" y2="305"/><line x1="284" y1="341" x2="1354" y2="341"/><line x1="284" y1="377" x2="1354" y2="377"/><line x1="284" y1="413" x2="1354" y2="413"/></g>
+    <g class="text"><text x="294" y="185">Analog Out 1</text><text x="294" y="221">Analog Out 2</text><text x="294" y="257">Analog Out 3</text><text x="294" y="293">Analog Out 4</text><text x="294" y="329">Analog Out 5</text><text x="294" y="365">Analog Out 6</text><text x="294" y="401">Analog Out 7</text><text x="294" y="437">Analog Out 8</text></g>
+    <g><rect class="panel2" x="900" y="168" width="400" height="25" rx="5"/><rect class="panel2" x="900" y="204" width="400" height="25" rx="5"/><rect class="panel2" x="900" y="240" width="400" height="25" rx="5"/><rect class="panel2" x="900" y="276" width="400" height="25" rx="5"/><rect class="panel2" x="900" y="312" width="400" height="25" rx="5"/><rect class="panel2" x="900" y="348" width="400" height="25" rx="5"/><rect class="panel2" x="900" y="384" width="400" height="25" rx="5"/><rect class="panel2" x="900" y="420" width="400" height="25" rx="5"/></g>
+    <g class="small"><text x="920" y="186">DAW 1　⌄</text><text x="920" y="222">DAW 2　⌄</text><text x="920" y="258">DAW 3　⌄</text><text x="920" y="294">DAW 4　⌄</text><text x="920" y="330">DAW 5　⌄</text><text x="920" y="366">DAW 6　⌄</text><text x="920" y="402">DAW 7　⌄</text><text x="920" y="438">DAW 8　⌄</text></g>
+    <g fill="#42bf78"><rect x="1324" y="176" width="22" height="7" rx="3"/><rect x="1324" y="212" width="22" height="7" rx="3"/><rect x="1324" y="248" width="22" height="7" rx="3"/><rect x="1324" y="284" width="22" height="7" rx="3"/></g>
+    <rect class="panel" x="260" y="462" width="1120" height="362" rx="12"/><text class="section" x="284" y="496">Recording channels (to the Mac)</text>
+    <g class="line"><line x1="284" y1="511" x2="1354" y2="511"/><line x1="284" y1="548" x2="1354" y2="548"/><line x1="284" y1="585" x2="1354" y2="585"/><line x1="284" y1="622" x2="1354" y2="622"/><line x1="284" y1="659" x2="1354" y2="659"/><line x1="284" y1="696" x2="1354" y2="696"/><line x1="284" y1="733" x2="1354" y2="733"/><line x1="284" y1="770" x2="1354" y2="770"/><line x1="284" y1="807" x2="1354" y2="807"/></g>
+    <g class="text"><text x="294" y="537">To Mac 1</text><text x="294" y="574">To Mac 2</text><text x="294" y="611">To Mac 3</text><text x="294" y="648">To Mac 4</text><text x="294" y="685">To Mac 5</text><text x="294" y="722">To Mac 6</text><text x="294" y="759">To Mac 7</text><text x="294" y="796">To Mac 8</text></g>
+    <g><rect class="panel2" x="900" y="518" width="400" height="26" rx="5"/><rect class="panel2" x="900" y="555" width="400" height="26" rx="5"/><rect class="panel2" x="900" y="592" width="400" height="26" rx="5"/><rect class="panel2" x="900" y="629" width="400" height="26" rx="5"/><rect class="panel2" x="900" y="666" width="400" height="26" rx="5"/><rect class="panel2" x="900" y="703" width="400" height="26" rx="5"/><rect class="panel2" x="900" y="740" width="400" height="26" rx="5"/><rect class="panel2" x="900" y="777" width="400" height="26" rx="5"/></g>
+    <g class="small"><text x="920" y="537">Analog In 1　⌄</text><text x="920" y="574">Analog In 2　⌄</text><text x="920" y="611">Analog In 3　⌄</text><text x="920" y="648">Analog In 4　⌄</text><text x="920" y="685">Analog In 5　⌄</text><text x="920" y="722">Analog In 6　⌄</text><text x="920" y="759">Analog In 7　⌄</text><text x="920" y="796">Analog In 8　⌄</text></g>
+    <text class="tiny" x="284" y="820">16 record channels are available; additional DAW and optical routes continue below.</text>
+  </g>
+
+  <g id="Mixer" transform="translate(0 1000)">
+    <rect class="window" x="0" y="0" width="1440" height="900" rx="14"/>
+    <path class="titlebar" d="M14 0h1412a14 14 0 0 1 14 14v34H0V14A14 14 0 0 1 14 0z"/>
+    <circle cx="22" cy="24" r="6" fill="#ff6259"/><circle cx="42" cy="24" r="6" fill="#ffc14a"/><circle cx="62" cy="24" r="6" fill="#45c65a"/>
+    <text class="text" x="720" y="29" text-anchor="middle" font-weight="600">Symphony Control</text>
+    <rect class="sidebar" x="0" y="48" width="228" height="852"/><text class="small" x="24" y="82" font-weight="600">SYMPHONY CONTROL</text>
+    <g class="text"><text x="44" y="126">◖ Monitoring</text><text x="44" y="167">⌁ Inputs &amp; Outputs</text><text x="44" y="207">⑂ Routing</text><rect class="accent" x="12" y="224" width="204" height="38" rx="7"/><text x="44" y="249">☷ Mixer</text><text x="44" y="290">◷ Clock</text><text x="44" y="330">▤ Profiles</text></g>
+    <line class="line" x1="0" y1="850" x2="228" y2="850"/><circle class="green" cx="26" cy="872" r="5"/><text class="small" x="40" y="876">Connected</text>
+    <text class="heading" x="260" y="88">Mixer</text>
+    <rect class="accent" x="260" y="108" width="120" height="38" rx="7"/><text class="text" x="320" y="133" text-anchor="middle">Mixer 1</text><rect class="button" x="380" y="108" width="120" height="38" rx="7"/><text class="small" x="440" y="133" text-anchor="middle">Mixer 2</text>
+    <g id="Mixer strips" transform="translate(260 166)">
+      <rect class="panel" width="1120" height="646" rx="12"/>
+      <g transform="translate(12 18)">
+        <g id="strip1"><rect class="panel2" width="58" height="600" rx="7"/><text class="small" x="29" y="24" text-anchor="middle">In 1</text><text class="tiny" x="29" y="49" text-anchor="middle">Analog 1</text><line class="stroke" x1="16" y1="68" x2="42" y2="68"/><rect x="27" y="78" width="4" height="354" rx="2" fill="#454b53"/><rect class="accent" x="27" y="230" width="4" height="202" rx="2"/><rect x="18" y="220" width="22" height="14" rx="3" fill="#d9dde1"/><rect x="44" y="86" width="5" height="346" rx="2" fill="#46c878"/><text class="tiny" x="29" y="458" text-anchor="middle">−8 dB</text><rect class="button" x="7" y="484" width="20" height="28" rx="5"/><text class="tiny" x="17" y="502" text-anchor="middle">S</text><rect class="button" x="31" y="484" width="20" height="28" rx="5"/><text class="tiny" x="41" y="502" text-anchor="middle">M</text></g>
+        <g transform="translate(64 0)"><use href="#strip1"/></g>
+        <g transform="translate(128 0)"><use href="#strip1"/></g>
+        <g transform="translate(192 0)"><use href="#strip1"/></g>
+        <g transform="translate(256 0)"><use href="#strip1"/></g>
+        <g transform="translate(320 0)"><use href="#strip1"/></g>
+        <g transform="translate(384 0)"><use href="#strip1"/></g>
+        <g transform="translate(448 0)"><use href="#strip1"/></g>
+        <g transform="translate(512 0)"><use href="#strip1"/></g>
+        <g transform="translate(576 0)"><use href="#strip1"/></g>
+        <g transform="translate(640 0)"><use href="#strip1"/></g>
+        <g transform="translate(704 0)"><use href="#strip1"/></g>
+        <g transform="translate(768 0)"><use href="#strip1"/></g>
+        <g transform="translate(832 0)"><use href="#strip1"/></g>
+        <g transform="translate(896 0)"><use href="#strip1"/></g>
+        <g transform="translate(960 0)"><use href="#strip1"/></g>
+        <line class="line" x1="1024" y1="0" x2="1024" y2="600"/>
+        <g transform="translate(1032 0)"><rect class="panel2" width="58" height="600" rx="7"/><text class="small" x="29" y="24" text-anchor="middle">Return</text><rect x="27" y="78" width="4" height="354" rx="2" fill="#454b53"/><rect class="accent" x="27" y="260" width="4" height="172" rx="2"/><rect x="18" y="250" width="22" height="14" rx="3" fill="#d9dde1"/><text class="tiny" x="29" y="458" text-anchor="middle">−12 dB</text></g>
+        <g transform="translate(1096 0)"><rect class="panel2" width="58" height="600" rx="7"/><text class="small" x="29" y="24" text-anchor="middle">Master</text><rect x="27" y="78" width="4" height="354" rx="2" fill="#454b53"/><rect class="accent" x="27" y="180" width="4" height="252" rx="2"/><rect x="18" y="170" width="22" height="14" rx="3" fill="#d9dde1"/><text class="tiny" x="29" y="458" text-anchor="middle">0 dB</text></g>
+      </g>
+    </g>
+    <text class="small" x="276" y="838">Each input strip: source, pan, level meter, fader, solo and mute. Scroll horizontally for all 16 inputs.</text>
+  </g>
+
+  <g id="Clock" transform="translate(1500 1000)">
+    <rect class="window" x="0" y="0" width="1440" height="900" rx="14"/>
+    <path class="titlebar" d="M14 0h1412a14 14 0 0 1 14 14v34H0V14A14 14 0 0 1 14 0z"/>
+    <circle cx="22" cy="24" r="6" fill="#ff6259"/><circle cx="42" cy="24" r="6" fill="#ffc14a"/><circle cx="62" cy="24" r="6" fill="#45c65a"/>
+    <text class="text" x="720" y="29" text-anchor="middle" font-weight="600">Symphony Control</text>
+    <rect class="sidebar" x="0" y="48" width="228" height="852"/><text class="small" x="24" y="82" font-weight="600">SYMPHONY CONTROL</text>
+    <g class="text"><text x="44" y="126">◖ Monitoring</text><text x="44" y="167">⌁ Inputs &amp; Outputs</text><text x="44" y="207">⑂ Routing</text><text x="44" y="247">☷ Mixer</text><rect class="accent" x="12" y="264" width="204" height="38" rx="7"/><text x="44" y="289">◷ Clock</text><text x="44" y="330">▤ Profiles</text></g>
+    <line class="line" x1="0" y1="850" x2="228" y2="850"/><circle class="green" cx="26" cy="872" r="5"/><text class="small" x="40" y="876">Connected</text>
+    <text class="heading" x="260" y="88">Clock</text>
+    <rect class="panel" x="260" y="112" width="1120" height="204" rx="12"/>
+    <text class="section" x="284" y="148">Sample rate</text><text class="small" x="284" y="182">Rate</text>
+    <g transform="translate(420 166)">
+      <rect class="button" width="170" height="48" rx="7"/><text class="text" x="85" y="30" text-anchor="middle">44.1 kHz</text>
+      <rect class="accent" x="174" width="170" height="48" rx="7"/><text class="text" x="259" y="30" text-anchor="middle">48.0 kHz</text>
+      <rect class="button" x="348" width="170" height="48" rx="7"/><text class="text" x="433" y="30" text-anchor="middle">88.2 kHz</text>
+      <rect class="button" x="522" width="170" height="48" rx="7"/><text class="text" x="607" y="30" text-anchor="middle">96.0 kHz</text>
+    </g>
+    <text class="small" x="284" y="258">Set through macOS, so this matches Audio MIDI Setup.</text>
+    <rect class="panel" x="260" y="336" width="1120" height="178" rx="12"/>
+    <text class="section" x="284" y="372">Clock source</text>
+    <circle cx="330" cy="434" r="24" fill="#30343a" stroke="#525961"/><text class="text" x="330" y="440" text-anchor="middle">◷</text>
+    <text class="text" x="374" y="428">Choose the clock source on the Symphony itself.</text>
+    <text class="small" x="374" y="456">Hold one of the rotary encoders to select internal, word clock or digital input.</text>
+    <rect class="panel" x="260" y="534" width="1120" height="120" rx="12"/>
+    <text class="section" x="284" y="570">Current device</text><circle class="green" cx="300" cy="610" r="5"/><text class="text" x="316" y="615">Symphony I/O Mk1 connected</text><text class="small" x="1338" y="615" text-anchor="end">Rate changes are managed by macOS Audio MIDI Setup.</text>
+  </g>
+
+  <g id="Profiles" transform="translate(3000 1000)">
+    <rect class="window" x="0" y="0" width="1440" height="900" rx="14"/>
+    <path class="titlebar" d="M14 0h1412a14 14 0 0 1 14 14v34H0V14A14 14 0 0 1 14 0z"/>
+    <circle cx="22" cy="24" r="6" fill="#ff6259"/><circle cx="42" cy="24" r="6" fill="#ffc14a"/><circle cx="62" cy="24" r="6" fill="#45c65a"/>
+    <text class="text" x="720" y="29" text-anchor="middle" font-weight="600">Symphony Control</text>
+    <rect class="sidebar" x="0" y="48" width="228" height="852"/><text class="small" x="24" y="82" font-weight="600">SYMPHONY CONTROL</text>
+    <g class="text"><text x="44" y="126">◖ Monitoring</text><text x="44" y="167">⌁ Inputs &amp; Outputs</text><text x="44" y="207">⑂ Routing</text><text x="44" y="247">☷ Mixer</text><text x="44" y="287">◷ Clock</text><rect class="accent" x="12" y="304" width="204" height="38" rx="7"/><text x="44" y="329">▤ Profiles</text></g>
+    <line class="line" x1="0" y1="850" x2="228" y2="850"/><circle class="green" cx="26" cy="872" r="5"/><text class="small" x="40" y="876">Connected</text>
+    <text class="heading" x="260" y="88">Profiles</text>
+    <rect class="panel" x="260" y="112" width="1120" height="180" rx="12"/>
+    <text class="section" x="284" y="148">Save</text><text class="small" x="284" y="184">Profile name</text>
+    <rect class="panel2" x="284" y="198" width="660" height="42" rx="7"/><text class="small" x="302" y="224">Studio tracking</text>
+    <rect class="accent" x="962" y="198" width="220" height="42" rx="7"/><text class="text" x="1072" y="224" text-anchor="middle">Save Current Setup</text>
+    <text class="small" x="284" y="270">A profile stores monitoring, headphone feeds, I/O levels, routing and both mixers.</text>
+    <rect class="panel" x="260" y="312" width="1120" height="480" rx="12"/>
+    <text class="section" x="284" y="350">Saved profiles</text><text class="small" x="284" y="378">The last recalled profile is marked with a check.</text>
+    <g class="line"><line x1="284" y1="396" x2="1356" y2="396"/><line x1="284" y1="474" x2="1356" y2="474"/><line x1="284" y1="552" x2="1356" y2="552"/><line x1="284" y1="630" x2="1356" y2="630"/><line x1="284" y1="708" x2="1356" y2="708"/></g>
+    <g class="text"><circle class="accent" cx="306" cy="435" r="8"/><text x="330" y="440" font-weight="600">Studio tracking</text><circle cx="306" cy="513" r="8" fill="none" stroke="#777f89"/><text x="330" y="518">Control room</text><circle cx="306" cy="591" r="8" fill="none" stroke="#777f89"/><text x="330" y="596">Headphone mix</text><circle cx="306" cy="669" r="8" fill="none" stroke="#777f89"/><text x="330" y="674">Live playback</text></g>
+    <g><rect class="button" x="930" y="416" width="88" height="38" rx="7"/><rect class="button" x="1026" y="416" width="124" height="38" rx="7"/><rect class="button" x="1160" y="416" width="48" height="38" rx="7"/><rect class="button" x="930" y="494" width="88" height="38" rx="7"/><rect class="button" x="1026" y="494" width="124" height="38" rx="7"/><rect class="button" x="1160" y="494" width="48" height="38" rx="7"/><rect class="button" x="930" y="572" width="88" height="38" rx="7"/><rect class="button" x="1026" y="572" width="124" height="38" rx="7"/><rect class="button" x="1160" y="572" width="48" height="38" rx="7"/><rect class="button" x="930" y="650" width="88" height="38" rx="7"/><rect class="button" x="1026" y="650" width="124" height="38" rx="7"/><rect class="button" x="1160" y="650" width="48" height="38" rx="7"/></g>
+    <g class="small"><text x="974" y="440" text-anchor="middle">Load</text><text x="1088" y="440" text-anchor="middle">Overwrite</text><text x="1184" y="440" text-anchor="middle">⌫</text><text x="974" y="518" text-anchor="middle">Load</text><text x="1088" y="518" text-anchor="middle">Overwrite</text><text x="1184" y="518" text-anchor="middle">⌫</text><text x="974" y="596" text-anchor="middle">Load</text><text x="1088" y="596" text-anchor="middle">Overwrite</text><text x="1184" y="596" text-anchor="middle">⌫</text><text x="974" y="674" text-anchor="middle">Load</text><text x="1088" y="674" text-anchor="middle">Overwrite</text><text x="1184" y="674" text-anchor="middle">⌫</text></g>
+  </g>
+</svg>

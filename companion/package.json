@@ -1,0 +1,20 @@
+{
+	"name": "companion-module-anti-symphony",
+	"version": "0.1.4",
+	"description": "Bitfocus Companion module for Apogee Symphony I/O control",
+	"main": "src/main.js",
+	"type": "module",
+	"scripts": {
+		"package": "companion-module-build"
+	},
+	"license": "MIT",
+	"engines": {
+		"node": "^22.18"
+	},
+	"dependencies": {
+		"@companion-module/base": "~2.1.3"
+	},
+	"devDependencies": {
+		"@companion-module/tools": "^3.1.1"
+	}
+}

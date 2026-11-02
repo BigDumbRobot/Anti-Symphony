@@ -77,4 +77,8 @@ Profiles are text files in `~/Library/Application Support/Anti-Symphony/profiles
 
 ## Companion
 
-Use Companion's generic OSC module, pointed at this Mac and port 7100. For example, a mute button sends `/symphony/monitor/main/mute/toggle`, and a volume knob sends `/symphony/monitor/main/level/inc 1` and `/dec 1`.
+Anti-Symphony includes a custom Bitfocus Companion module in [`companion/`](../companion/README.md). Add the **Anti-Symphony** connection, enter the Mac running `symphonyd` and OSC port 7100, then choose its native actions or add one of its ready-made presets. Presets cover monitor controls, both mixers' strips, all routing destinations, headphone feeds, analog I/O, clock, profiles, meters, and interface identification.
+
+The module subscribes to `symphonyd` for live state and renews the subscription automatically. If Companion runs on another computer, configure `symphonyd` to bind to a reachable interface (for example `--osc-bind 0.0.0.0`) and permit UDP port 7100 on a trusted LAN. OSC has no authentication; do not expose it to the public internet. The generic OSC module remains usable for controls not covered by the custom module.
+
+If Companion reports no OSC reply, check that its target IP and port match `symphonyd`; remote Companion also requires a network-reachable bind address because the daemon defaults to `127.0.0.1`. If it reports that the Symphony is disconnected, OSC is working but the daemon does not currently see the interface.
