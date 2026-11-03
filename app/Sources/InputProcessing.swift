@@ -186,7 +186,7 @@ struct InputProcessingView: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top) {
                 Image(systemName: "info.circle").foregroundStyle(.secondary)
-                Text("Choose plugins for each input and open them with the slider button; their settings are saved with the slot. Link a pair (odd = left, even = right) to use the stereo versions; settings carry over either way. Inputs with plugins are processed live by Symphony Control (no DAW needed) and reach the DAW processed on the same input number (1:1); the dry copy moves to a spare input. Zero-latency monitoring stays dry on Bus A / Bus B.")
+                Text("Choose plugins for each input and open them with the slider button; their settings are saved with the slot. Link a pair (odd = left, even = right) to use the stereo versions; settings carry over either way. Inputs with plugins are processed live by Symphony Control (no DAW needed) and reach the DAW processed on the same input number (1:1). Each processed input needs one spare channel (from 16 down) to feed the engine. Zero-latency monitoring stays dry on Bus A / Bus B.")
                     .font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 Button("Rescan Plugins") { proc.refreshPlugins() }.controlSize(.small)
@@ -293,8 +293,9 @@ struct InputProcessingView: View {
                     .help("The DAW records this input processed, on the same input number (1:1). Engine return: DAW \(r)\(stereo ? "–\(r + 1)" : "").")
                 let copies = (stereo ? [ch, ch + 1] : [ch]).compactMap { engine.dryCopies[$0] }.map { String($0 - 0xD0 + 1) }
                 if !copies.isEmpty {
-                    Text("Dry copy on DAW input\(copies.count > 1 ? "s" : "") \(copies.joined(separator: ", "))")
+                    Text("Engine feed: input\(copies.count > 1 ? "s" : "") \(copies.joined(separator: ", ")) (ignore in the DAW)")
                         .font(.caption2).foregroundStyle(.secondary)
+                        .help("Symphony Control receives the input on this channel to process it. USB carries 16 channels from the box, so each processed input uses one more; they're taken from 16 down.")
                 }
                 phonesButton(ch)
             }

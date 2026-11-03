@@ -70,7 +70,7 @@ Through-the-Mac time, from the device's figures: about 5 ms at a 32-sample buffe
 
 ### 1:1 delivery to the DAW (built)
 
-Processed input N arrives on the box's recording channel N, so the DAW's input N is the processed signal. Its dry copy moves to a spare recording channel (16 down), which the engine reads; what that channel carried comes back when processing stops.
+Processed input N arrives on the box's recording channel N, so the DAW's input N is the processed signal. The engine needs the input itself on some recording channel (USB carries only 16 from the box), so it's fed on a spare one (16 down), not meant for the DAW; what that channel carried comes back when processing stops.
 
 ### Measured on the box and in Pro Tools Developer (2026-11-03)
 
