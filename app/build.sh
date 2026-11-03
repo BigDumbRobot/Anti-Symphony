@@ -24,6 +24,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 	<key>CFBundleVersion</key><string>$VERSION</string>
 	<key>LSMinimumSystemVersion</key><string>14.0</string>
 	<key>NSHighResolutionCapable</key><true/>
+	<key>NSMicrophoneUsageDescription</key><string>Input Processing reads the Symphony's inputs to run your plugins on them.</string>
 </dict>
 </plist>
 PLIST

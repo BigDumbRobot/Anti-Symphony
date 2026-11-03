@@ -408,7 +408,7 @@ struct Strip: View {
             if let route {
                 Menu(Names.source(src ?? -1)) {
                     ForEach(Names.sources) { s in
-                        Button(s.name) { store.set(route, Double(s.id), float: false) }
+                        Button(Names.source(s.id)) { store.set(route, Double(s.id), float: false) }
                     }
                 }
                 .menuStyle(.borderlessButton)

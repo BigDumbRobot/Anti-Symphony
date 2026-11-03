@@ -49,8 +49,13 @@ enum Names {
     /// The 16 channels the Mac records (destinations 0xD0-0xDF).
     static let toMac: [Item] = (0..<16).map { Item(id: 0xD0 + $0, name: "To Mac \($0 + 1)") }
 
-    static func source(_ id: Int) -> String {
-        sources.first { $0.id == id }?.name ?? String(format: "Source 0x%02X", id)
+    /// Names for DAW channels that carry processed inputs (set by the Input Processing engine).
+    @MainActor static var returnLabels: [Int: String] = [:]
+
+    @MainActor static func source(_ id: Int) -> String {
+        let base = sources.first { $0.id == id }?.name ?? String(format: "Source 0x%02X", id)
+        if let fx = returnLabels[id] { return "\(fx) (\(base))" }
+        return base
     }
 
     /// Analog reference level codes, measured through a loopback cable (tests/hwtest.py):

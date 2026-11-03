@@ -60,6 +60,8 @@ final class Speakers: ObservableObject {
     @Published private(set) var alt: Int?
     @Published private(set) var mini: Int?
     @Published private(set) var mode: Mode = .main
+    /// Main level (dB) saved per speaker set, so each set comes back at its own level when selected.
+    @Published private(set) var levels: [Mode: Double] = [:]
 
     /// Outputs this drove last time (cleared to None when they stop being used).
     private var driven: Set<Int> = []
@@ -146,8 +148,11 @@ final class Speakers: ObservableObject {
 
     func select(_ m: Mode) {
         guard isAvailable(m) else { return }
+        let level = "/symphony/monitor/main/level"
+        if let now = value(level) { levels[mode] = now }        // keep the level of the set we leave
         mode = m
         apply()
+        if let saved = levels[m] { send(level, saved, true) }  // and bring back this set's own level
     }
 
     func setSource(_ left: Int) { source = left; apply() }
@@ -204,18 +209,21 @@ final class Speakers: ObservableObject {
 
     private struct File: Codable {
         var source: Int, surroundStart: Int, main: Int, alt: Int?, mini: Int?, mode: Mode, driven: [Int]
+        var levels: [String: Double]?
     }
 
     private func load() {
         guard let d = try? Data(contentsOf: url), let f = try? JSONDecoder().decode(File.self, from: d) else { return }
         source = f.source; surroundStart = f.surroundStart; main = f.main; alt = f.alt; mini = f.mini
         mode = f.mode; driven = Set(f.driven)
+        levels = Dictionary(uniqueKeysWithValues: (f.levels ?? [:]).compactMap { k, v in Mode(rawValue: k).map { ($0, v) } })
         configured = true
     }
 
     private func save() {
         try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-        let f = File(source: source, surroundStart: surroundStart, main: main, alt: alt, mini: mini, mode: mode, driven: driven.sorted())
+        let f = File(source: source, surroundStart: surroundStart, main: main, alt: alt, mini: mini, mode: mode, driven: driven.sorted(),
+                     levels: Dictionary(uniqueKeysWithValues: levels.map { ($0.key.rawValue, $0.value) }))
         if let d = try? JSONEncoder().encode(f) { try? d.write(to: url, options: .atomic) }
     }
 }
@@ -268,7 +276,7 @@ struct SpeakerSetup: View {
         } header: {
             Text("Speakers")
         } footer: {
-            Text("MAIN, ALT and MINI play the stereo source on their pair; QUAD plays DAW channels on Analog Out 1–2 (front) and 7–8 (rear); 5.1 and 7.1 on Analog Out 1–6 and 1–8. Pressing a stereo button goes back to stereo on that pair, and only outputs used here are switched. The main level, DIM and MUTE act on \(speakers.coveredOutputs) right now (the box counts its speaker outputs from Out 1), so don't use those for line-level sends. Optical pairs switch but have no level control.")
+            Text("MAIN, ALT and MINI play the stereo source on their pair; QUAD plays DAW channels on Analog Out 1–2 (front) and 7–8 (rear); 5.1 and 7.1 on Analog Out 1–6 and 1–8. Pressing a stereo button goes back to stereo on that pair, and only outputs used here are switched. Each speaker set remembers its own main level. The main level, DIM and MUTE act on \(speakers.coveredOutputs) right now (the box counts its speaker outputs from Out 1), so don't use those for line-level sends. Optical pairs switch but have no level control.")
                 .font(.caption).foregroundStyle(.secondary)
         }
         .onAppear { speakers.adoptCurrentSource() }

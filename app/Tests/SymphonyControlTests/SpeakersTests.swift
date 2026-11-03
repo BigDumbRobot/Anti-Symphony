@@ -105,6 +105,21 @@ final class SpeakersTests: XCTestCase {
         XCTAssertGreaterThan(muteWrite, modeWrite, "mute is put back after the layout change")
     }
 
+    func testEachSetKeepsItsOwnLevel() {
+        let s = make()
+        s.assign(.alt, 0x22)
+        box["/symphony/monitor/main/level"] = -20
+        s.select(.alt)
+        XCTAssertEqual(box["/symphony/monitor/main/level"], -20, "no saved level yet: unchanged")
+        box["/symphony/monitor/main/level"] = -32          // ALT speakers are louder: turned down
+        s.select(.main)
+        XCTAssertEqual(box["/symphony/monitor/main/level"], -20, "MAIN comes back at its own level")
+        s.select(.alt)
+        XCTAssertEqual(box["/symphony/monitor/main/level"], -32, "ALT comes back at its own level")
+        let t = make()
+        XCTAssertEqual(t.levels[.main], -20); XCTAssertEqual(t.levels[.alt], -32)
+    }
+
     func testSavedAndReloaded() {
         let s = make()
         s.assign(.alt, 0x24); s.assign(.mini, 0x2A); s.setSource(0x40); s.select(.mini)

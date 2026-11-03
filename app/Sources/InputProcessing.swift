@@ -179,17 +179,20 @@ struct InputProcessingView: View {
     @EnvironmentObject var store: Store
     @EnvironmentObject var proc: InputProcessing
     @EnvironmentObject var cal: Calibration
+    @EnvironmentObject var engine: FXEngine
+    @State private var confirmPhones: Int?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top) {
                 Image(systemName: "info.circle").foregroundStyle(.secondary)
-                Text("Choose plugins for each input and open them with the slider button; their settings are saved with the slot. Link a pair (odd = left, even = right) to use the stereo versions; settings carry over either way. Audio doesn't pass through these plugins yet: the engine that runs them is the next build step. Zero-latency monitoring stays on Bus A / Bus B.")
+                Text("Choose plugins for each input and open them with the slider button; their settings are saved with the slot. Link a pair (odd = left, even = right) to use the stereo versions; settings carry over either way. Inputs with plugins are processed live by Symphony Control (no DAW needed) and come back on spare DAW channels. Zero-latency monitoring stays dry on Bus A / Bus B.")
                     .font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 Button("Rescan Plugins") { proc.refreshPlugins() }.controlSize(.small)
             }
             .padding([.horizontal, .top])
+            engineBar.padding(.horizontal).padding(.top, 8)
             if let p = proc.problem {
                 HStack {
                     Label(p, systemImage: "exclamationmark.triangle").foregroundStyle(.orange).font(.caption)
@@ -209,6 +212,37 @@ struct InputProcessingView: View {
             }
         }
         .wantsMeters()
+        .confirmationDialog(confirmTitle, isPresented: Binding(get: { confirmPhones != nil }, set: { if !$0 { confirmPhones = nil } }),
+                            titleVisibility: .visible) {
+            Button("Send Processed to Headphones") { if let c = confirmPhones { engine.setProcessedInPhones(c, true) }; confirmPhones = nil }
+        } message: {
+            Text("The headphones will hear this input after your plugins, about \(latencyText) late because it goes through the Mac. Dry (zero latency) is one click away.")
+        }
+    }
+
+    private var latencyText: String { engine.roundTripMs.map { String(format: "%.1f ms", $0) } ?? "5 ms" }
+    private var confirmTitle: String {
+        guard let c = confirmPhones else { return "" }
+        return "Hear \(proc.isLinked(c) ? InputProcessing.pairName(c % 2 == 1 ? c : c - 1) : InputProcessing.name(c)) processed in the headphones?"
+    }
+
+    /// Dry (zero latency) or processed (through the Mac) in the headphone mixes.
+    @ViewBuilder private func phonesButton(_ ch: Int) -> some View {
+        let wet = engine.processedInPhones(ch)
+        let used = engine.inPhones(ch)
+        Button {
+            if wet { engine.setProcessedInPhones(ch, false) } else { confirmPhones = ch }
+        } label: {
+            Label(wet ? "Phones: processed (+\(latencyText))" : "Phones: dry (0 ms)",
+                  systemImage: wet ? "headphones.circle.fill" : "headphones")
+                .font(.caption2)
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.small)
+        .tint(wet ? .orange : nil)
+        .disabled(!used)
+        .help(used ? (wet ? "Back to dry: zero latency, before the plugins." : "Send the processed signal to the headphone mixes instead of the dry input.")
+                   : "This input isn't in a headphone mix (Headphone Mixes page or a headphone feed).")
     }
 
     @ViewBuilder
@@ -246,6 +280,20 @@ struct InputProcessingView: View {
             HStack(spacing: 3) {
                 InputMeterBar(index: ch - 1)
                 if stereo { InputMeterBar(index: ch) }
+            }
+            .help("Input level (before processing)")
+            if let r = engine.returns[ch] {
+                HStack(spacing: 3) {
+                    FXMeterBar(channel: ch)
+                    if stereo { FXMeterBar(channel: ch + 1) }
+                }
+                .help("Processed level")
+                Text(stereo ? "Processed → DAW \(r)–\(r + 1)" : "Processed → DAW \(r)")
+                    .font(.caption2).foregroundStyle(.secondary)
+                phonesButton(ch)
+            }
+            if let p = engine.problems[ch] {
+                Text(p).font(.caption2).foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)
             }
             if ch <= 8 { hardware(ch, stereo: stereo) }
             ForEach(0..<InputProcessing.slotsPerChannel, id: \.self) { i in
@@ -326,4 +374,30 @@ struct InputProcessingView: View {
             }
         }
     }
+}
+
+extension InputProcessingView {
+    var engineBar: some View {
+        HStack(spacing: 14) {
+            Toggle("Process inputs", isOn: $engine.enabled).toggleStyle(.switch).controlSize(.small)
+            Picker("Buffer", selection: $engine.bufferFrames) {
+                ForEach(FXEngine.bufferChoices, id: \.self) { Text("\($0) samples").tag($0) }
+            }
+            .frame(width: 170)
+            Circle().fill(engine.running ? Color.green : Color.secondary).frame(width: 7, height: 7)
+            Text(engine.status).font(.caption).foregroundStyle(.secondary)
+            if engine.running, let ms = engine.roundTripMs {
+                Text(String(format: "Through the Mac: about %.1f ms", ms)).font(.caption).foregroundStyle(.secondary)
+                    .help("Input → plugins → output: 2 × buffer plus the Symphony's fixed USB latency, plus the plugins' own latency.")
+            }
+            Spacer()
+        }
+    }
+}
+
+/// Processed level for one input channel (watches the engine's meters on its own).
+struct FXMeterBar: View {
+    @EnvironmentObject var fx: FXMeters
+    let channel: Int
+    var body: some View { MeterBar(db: fx.levels[channel] ?? -120) }
 }

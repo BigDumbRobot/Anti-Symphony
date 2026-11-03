@@ -4,14 +4,19 @@ import SwiftUI
 struct SymphonyControlApp: App {
     @StateObject private var store: Store
     @StateObject private var calibration: Calibration
-    @StateObject private var processing = InputProcessing()
+    @StateObject private var processing: InputProcessing
     @StateObject private var speakers: Speakers
+    @StateObject private var engine: FXEngine
 
     init() {
         let s = Store()
         _store = StateObject(wrappedValue: s)
-        _calibration = StateObject(wrappedValue: Calibration(store: s, meters: s.meters))
         _speakers = StateObject(wrappedValue: Speakers(store: s))
+        let p = InputProcessing()
+        _processing = StateObject(wrappedValue: p)
+        let cal = Calibration(store: s, meters: s.meters)
+        _calibration = StateObject(wrappedValue: cal)
+        _engine = StateObject(wrappedValue: FXEngine(store: s, proc: p, cal: cal))
     }
 
     var body: some Scene {
@@ -19,6 +24,7 @@ struct SymphonyControlApp: App {
             ContentView()
                 .environmentObject(store).environmentObject(store.meters)
                 .environmentObject(calibration).environmentObject(processing).environmentObject(speakers)
+                .environmentObject(engine).environmentObject(engine.meters)
         }
         .defaultSize(width: 1000, height: 720)
         .commands {

@@ -175,7 +175,7 @@ table.help td:first-child { width: 34%; }
         <li><strong>Open at login</strong>.</li>
       </ul>
       <h3>Speakers</h3>
-      <p style="font-size:12.3px"><strong>MAIN</strong> is any stereo pair; <strong>ALT</strong> and <strong>MINI</strong> any other pairs, or Off (set them on the Monitoring page). <strong>QUAD</strong> plays front L R on Analog Out 1–2 and rear L R on Out 7–8, <strong>5.1</strong> on Out 1–6 (L R C LFE Ls Rs), <strong>7.1</strong> on Out 1–8. MAIN, ALT or MINI goes back to stereo. Analog outputs from Out 1 up to the highest in use follow the knob: keep line sends above them.</p>
+      <p style="font-size:12.3px"><strong>MAIN</strong> is any stereo pair; <strong>ALT</strong> and <strong>MINI</strong> any other pairs, or Off (set them on the Monitoring page). <strong>QUAD</strong> plays front L R on Analog Out 1–2 and rear L R on Out 7–8, <strong>5.1</strong> on Out 1–6 (L R C LFE Ls Rs), <strong>7.1</strong> on Out 1–8. MAIN, ALT or MINI goes back to stereo. Each set remembers its own main level. Analog outputs from Out 1 up to the highest in use follow the knob: keep line sends above them.</p>
     </div>
   </div>
   <span class="pageno">3</span>
@@ -213,9 +213,9 @@ table.help td:first-child { width: 34%; }
 <section class="page" data-footer="Anti-Symphony · Input Processing">
   <p class="kicker">Symphony Control</p>
   <h2>Input Processing</h2>
-  <p class="lede">Plugin inserts for every input: four slots per channel, for the Audio Unit plugins installed on your Mac.</p>
+  <p class="lede">Plugin inserts for every input, four slots per channel, run live by Symphony Control.</p>
   <img class="shot" src="img/processing.jpg" alt="Input Processing page">
-  <p class="cap">Analog 1–2 linked as a stereo pair (ST). Each strip shows the input meter, the input's reference level and Soft Limit, then four inserts.</p>
+  <p class="cap">Analog 1–2 linked (ST) with Pink Spider-DMP, processed onto DAW 15–16. Each strip: input meter, processed meter, return channel, headphones button, reference level, Soft Limit, four inserts.</p>
   <div class="two">
     <div>
       <h3>Add a plugin</h3>
@@ -230,9 +230,9 @@ table.help td:first-child { width: 34%; }
     <div>
       <img class="shot" src="img/plugin.jpg" alt="Pink Spider-DMP plugin window">
       <p class="cap">A plugin window opened from a slot (Pink Spider-DMP).</p>
-      <div class="note warn">
-        <p><strong>Current version: setup only.</strong> Plugins chosen here are saved with their settings, but audio doesn't pass through them yet. The engine that runs them is in development.</p>
-        <p>The Symphony has no DSP chip, so plugins run on the Mac. Recordings can be lined up with zero added delay. Live monitoring through plugins always has a small delay (a few milliseconds), so keep the artist's cue on Bus A / Bus B for true zero latency.</p>
+      <div class="note info">
+        <p><strong>Live, no DAW needed.</strong> With <strong>Process inputs</strong> on, each input's plugins run in Symphony Control; the result plays on the spare DAW channel shown on the strip.</p>
+        <p><strong>Phones: dry / processed.</strong> Headphones hear the input dry, with zero latency. The button swaps in the processed signal, about 5 ms later (32-sample buffer).</p>
       </div>
     </div>
   </div>

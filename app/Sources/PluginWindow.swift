@@ -16,6 +16,8 @@ final class PluginWindows: NSObject, NSWindowDelegate {
     }
     private var open: [ObjectIdentifier: Open] = [:]
     private var saveTimer: Timer?
+    /// The running engine: when it has a slot's plugin, the window shows that live instance.
+    weak var engine: FXEngine?
 
     func show(_ proc: InputProcessing, channel ch: Int, slot i: Int, title: String) {
         if let existing = open.values.first(where: { $0.channel == ch && $0.slot == i }) {
@@ -25,6 +27,13 @@ final class PluginWindows: NSObject, NSWindowDelegate {
         }
         let s = proc.channels[ch - 1].slots[i]
         guard let p = s.plugin else { return }
+        if let live = engine?.unit(channel: ch, slot: i) {
+            Self.view(for: live) { view in
+                self.present(view ?? Self.genericView(live), unit: live, proc: proc, channel: ch, slot: i,
+                             title: "\(title) · Insert \(i + 1) · \(p.name)")
+            }
+            return
+        }
         let desc = AudioComponentDescription(componentType: p.type, componentSubType: p.subType,
                                              componentManufacturer: p.manufacturer, componentFlags: 0, componentFlagsMask: 0)
         AVAudioUnit.instantiate(with: desc, options: []) { unit, error in

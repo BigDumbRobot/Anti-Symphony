@@ -60,12 +60,27 @@ The app's **Input Processing** page holds the setup: up to 4 plugin inserts per 
 
 The hardware mixers are no longer "Mixer 1 / Mixer 2". They are **Bus A / Bus B**, the two zero-latency headphone mixes, and they stay dry.
 
-### Latency, plainly
+### The engine (built, 2026-11-03)
 
-The Symphony has no DSP, so every plugin runs on the Mac and the audio has to go there and back over USB. Nothing can hide that delay from someone listening live. A loopback through a headphone output adds a trip instead of removing one. What we can do:
+`FXEngine` in Symphony Control runs the chains live, no DAW needed: a HAL IOProc on the Symphony at its own buffer (16–256 samples; CoreAudio keeps one per process), reading each processed input from the recording channel that carries it, applying the calibration trim, rendering the plugins and writing the result to a spare DAW playback channel (a "return", from DAW 16 down; an input keeps its return). Each strip shows a processed meter and its return, and a **Phones: dry / processed** button swaps the return in for the dry input in the headphone mixes (with a latency warning). Needs the Microphone permission (macOS gives silent input without it).
 
-1. **Monitor dry, record processed.** Bus A / B carry the inputs straight from the converters (zero latency), with a DAW rough mix on two faders. The processed signal goes to the recording. This is how most native setups work.
-2. **Low-latency engine for processed monitoring.** A separate real-time process (not the DAW) opens the Symphony at the smallest buffer it accepts (16–32 samples), runs the insert chains, and plays the result to spare DAW channels. Bus A / B then mix those channels with everything else. Expected round trip: measure it with `symtest` (input → engine → output). It should be about 2–4 ms at 48 kHz, plus each plugin's own latency. Plugins that report latency get flagged on the strip.
-3. **Delay compensation for recording.** The engine reports its total latency so the recorded, processed signal lines up. The DAW already does this for hardware inserts.
+Verified on the box: Analog In 3 → Pink Spider-DMP (fresh, minimum 6 dB gain) → return looped to a recording channel: **+6.00 dB**. Gotcha found: Audio Units start with their busses disabled, and render fails with -10876 (no connection) until `isEnabled` is set.
 
-Next build steps: the engine process (AU hosting, mono/stereo state transfer through `fullState`), measuring the round trip on this box, and metering DAW playback (Core Audio process tap on the Symphony's output) so DAW-fed outputs show levels too.
+Through-the-Mac time, from the device's figures: about 5 ms at a 32-sample buffer at 48 kHz (2 × buffer + latencies + safety offsets + stream latencies). RemoteSession measured this box's loop at 522 samples with a 128 buffer, a few samples off the prediction; measure it the same way before relying on the figure.
+
+### Layers
+
+1. **The box's mixers (Bus A / Bus B): dry, zero latency.** Headphones always hear inputs routed directly here.
+2. **Input Processing: between the box and the DAW.** Delivers processed audio to the DAW, placed exactly, so what's printed lines up with everything else.
+
+### Delivering processed audio to the DAW (next)
+
+RemoteSession's timestamping method, applied here:
+
+- **Link insert on each DAW record track** (from RemoteSession's `native/link`): a zero-latency pass-through that publishes the host's timeline position, play/record state and track name per block, with the host time of the block, through a memory-mapped ring.
+- **The engine stamps every processed block** with the IOProc's input timestamp (device sample time and host time of the first input sample). The processed audio for input N is known to belong to device sample time T exactly; plugin latency (reported, and checked by cross-correlation against the dry input, as `rs-render` does) is removed.
+- **Matching host times** maps device sample time to timeline position, so each processed sample has an exact timeline position.
+- **Takes:** while the track records, the engine writes the processed, latency-removed audio losslessly with its stamps (RemoteSession's capture format: crash-safe, forced to disk every second). On stop it delivers a Broadcast Wave per run with its `bext` TimeReference, and imports it to the track's position over PTSL (Pro Tools). Other DAWs: "spot to original time" / drag in.
+- **Live:** the return channels also let the DAW record the processed signal directly (route a recording channel from the return; bit-exact loopback on this box) for a rough take; the timestamped print replaces it exactly.
+
+Open questions: Link AAX needs PACE signing for retail Pro Tools (AU/VST3 fine); which DAWs besides Pro Tools get automatic placement.
