@@ -35,14 +35,14 @@ Every control is a vendor control transfer on endpoint 0, device recipient:
 ### Monitoring
 | cmd | addr | len | meaning |
 |---|---|---|---|
-| 0x25 | 0 | 1 | speaker output mode (r/w) |
+| 0x25 | 0 | 1 | speaker output layout (r/w): 1 Line, 2 Stereo (Out 1–2), 3 two speaker sets, 4 three sets, 5 = 5.1 (Out 1–6), 6 = 7.1 (Out 1–8). Sets which analog outputs the main level, dim and mute reach (measured for 1–5). Writing it resets main mute |
 | 0x26 | 0 | 1 | speaker (main) output volume, signed byte (r/w) |
 | 0x27 | 0 | 1 | speaker output mute, 0/1 (r/w) |
 | 0x23 | hp | 1 | headphone volume, signed byte (r/w) |
 | 0x24 | hp | 1 | headphone mute, 0/1 (r/w) |
 | 0xE7 | out | 1 | dim, 0/1 (r/w). out: monitor output enum 1 → 2, 2 → 0, 3 → 1 |
 | 0xE8 | out | 1 | sum to mono, 0/1 (r/w), same index map as dim |
-| 0xE9 | 0 | 1 | active speaker set (r/w) |
+| 0xE9 | 0 | 1 | active speaker set (r/w). Fixed pairs: 0 = A = Analog Out 1–2, 1 = B = Out 3–4 (measured); the inactive set is muted |
 | 0x54 | 0 | 1 | headphone assignment (r/w): low nibble headphone 1, high nibble headphone 2. No audible effect over USB (all values tested); the headphone feeds are routes 0xE0–0xE3 |
 | 0x2A | 0 | 1 | front panel output selection (r/w) |
 
