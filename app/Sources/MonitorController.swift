@@ -12,7 +12,7 @@ struct MonitorController: View {
         VStack(spacing: 14) {
             header
             HStack(alignment: .center, spacing: 18) {
-                stereoMeter(dest: speakers.pairs[speakers.active] ?? 0x20, labels: ("L", "R"))
+                stereoMeter(dest: speakers.pair(speakers.mode) ?? 0x20, labels: ("L", "R"))
                 RotaryKnob(value: store.level("\(main)/level"), size: 168, label: "MAIN",
                            dimmed: store.flag("\(main)/dim").wrappedValue)
                 stereoMeter(dest: 0x20, labels: ("L", "R")).hidden()     // keeps the knob centred
@@ -49,22 +49,33 @@ struct MonitorController: View {
     }
 
     private var speakerRow: some View {
-        HStack(spacing: 6) {
-            Text("SPEAKERS").font(.system(size: 9, weight: .semibold)).tracking(1).foregroundStyle(Panel.label)
-            Spacer(minLength: 4)
-            ForEach(0..<4, id: \.self) { s in
-                let assigned = speakers.pairs[s] != nil
-                SelectKey(title: Speakers.names[s], selected: assigned && speakers.active == s, width: 34) {
-                    speakers.select(s)
+        VStack(spacing: 6) {
+            HStack(spacing: 6) {
+                ForEach([Speakers.Mode.main, .alt, .mini]) { m in
+                    let ok = speakers.isAvailable(m)
+                    SelectKey(title: m.title, selected: speakers.mode == m, width: 54) { speakers.select(m) }
+                        .opacity(ok ? 1 : 0.35)
+                        .disabled(!ok)
+                        .help(ok ? "\(m.title): \(Speakers.pairName(speakers.pair(m)))" : "\(m.title) is off (Monitoring page)")
                 }
-                .opacity(assigned ? 1 : 0.35)
-                .disabled(!assigned)
-                .help(assigned ? "Speakers \(Speakers.names[s]): \(Speakers.pairName(speakers.pairs[s]))"
-                               : "Speakers \(Speakers.names[s]) isn't assigned (Monitoring page)")
+                Spacer(minLength: 4)
+                PanelKey(title: "MONO", isOn: store.flag("\(main)/mono"), color: Panel.ring, width: 60, height: 30,
+                         font: .system(size: 10, weight: .bold))
             }
-            Spacer(minLength: 4)
-            PanelKey(title: "MONO", isOn: store.flag("\(main)/mono"), color: Panel.ring, width: 52, height: 30,
-                     font: .system(size: 10, weight: .bold))
+            HStack(spacing: 6) {
+                ForEach([Speakers.Mode.quad, .surround51, .surround71]) { m in
+                    SelectKey(title: m.title, selected: speakers.mode == m, color: .purple, width: 54) { speakers.select(m) }
+                        .help("\(m.title): Analog Out 1–\(m.channels) (\(m.channelNames.joined(separator: " ")))")
+                }
+                Spacer(minLength: 4)
+                Text(speakers.mode.isStereo ? Speakers.pairName(speakers.pair(speakers.mode)) : "OUT 1–\(speakers.mode.channels)")
+                    .font(.system(size: 9, weight: .semibold)).foregroundStyle(Panel.label)
+                    .frame(width: 60).lineLimit(1).minimumScaleFactor(0.7)
+            }
+            if speakers.mode == .quad {
+                Text("Rear speakers: repatch to Analog Out 3–4")
+                    .font(.system(size: 9, weight: .semibold)).foregroundStyle(.orange)
+            }
         }
     }
 
@@ -74,7 +85,7 @@ struct MonitorController: View {
             DestinationLED(dest: dest + 1)
         }
         .frame(height: 130)
-        .help(Speakers.pairName(speakers.pairs[speakers.active] ?? 0x20))
+        .help(speakers.mode.isStereo ? Speakers.pairName(speakers.pair(speakers.mode)) : "Analog Out 1–2 (front L/R)")
     }
 
     private func headphone(_ h: Int) -> some View {
@@ -101,7 +112,7 @@ struct MonitorController: View {
                     }
                 }
             }
-            feedMenu(h, label: onBus != nil ? "OTHER FEED…" : feedName(h, mirroring: mirroring))
+            feedMenu(h, label: onBus != nil ? "HP MIX" : feedName(h, mirroring: mirroring))
             HStack(spacing: 4) {
                 PanelKey(title: "DIM", isOn: store.flag("\(base)/dim"), color: .orange, width: 46, height: 24,
                          font: .system(size: 9, weight: .bold))

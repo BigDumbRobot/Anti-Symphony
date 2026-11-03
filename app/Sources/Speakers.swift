@@ -1,31 +1,78 @@
 import Foundation
 import SwiftUI
 
-/// Speakers A–D: each is any output pair; the monitor source plays on the active one.
+/// Monitor speakers: three stereo pairs and three surround formats.
 ///
-/// The box's own speaker sets are fixed (A = Analog Out 1–2, B = 3–4, measured), so switching is
-/// done by routing: the monitor source goes to the active pair and the other assigned pairs get
-/// "None". The main level, dim and mute act on the analog outputs the box's speaker layout covers,
-/// so the layout is set to cover every assigned analog pair:
-///   2 = Stereo (Out 1–2), 5 = 5.1 (Out 1–6), 6 = 7.1 (Out 1–8)   (1 = Line, 3/4 = 2/3 speaker sets)
-/// Optical pairs can be speakers too, but the main level doesn't reach them.
+/// - MAIN, ALT, MINI: each any stereo output pair (ALT and MINI can be off; no pair is used twice).
+///   The stereo source plays on the selected pair.
+/// - QUAD (Out 1–4: L R Ls Rs), 5.1 (Out 1–6: L R C LFE Ls Rs), 7.1 (Out 1–8: L R C LFE Ls Rs Lrs Rrs):
+///   DAW channels from the surround start, straight to the analog outputs in that order.
+/// Pressing a stereo pair while in surround goes back to stereo on that pair.
+///
+/// Switching is done by routing: whatever this drove before and doesn't drive now gets "None",
+/// and other outputs are left alone. The box's speaker layout register sets which analog outputs
+/// the main level, dim and mute reach (2 = Out 1–2, 5 = Out 1–6, 6 = Out 1–8), so it's set to
+/// cover what's playing. Writing the layout resets the box's mute, so mute and dim are put back.
 /// Saved in ~/Library/Application Support/Anti-Symphony/speakers.json.
 @MainActor
 final class Speakers: ObservableObject {
-    static let names = ["A", "B", "C", "D"]
+    enum Mode: String, Codable, CaseIterable, Identifiable {
+        case main, alt, mini, quad, surround51, surround71
+        var id: String { rawValue }
+        var title: String {
+            switch self {
+            case .main: return "MAIN"; case .alt: return "ALT"; case .mini: return "MINI"
+            case .quad: return "QUAD"; case .surround51: return "5.1"; case .surround71: return "7.1"
+            }
+        }
+        var isStereo: Bool { self == .main || self == .alt || self == .mini }
+        /// Surround channel count (analog outputs 1…n).
+        var channels: Int { switch self { case .quad: return 4; case .surround51: return 6; case .surround71: return 8; default: return 2 } }
+        var channelNames: [String] {
+            switch self {
+            case .quad: return ["L", "R", "Ls", "Rs"]
+            case .surround51: return ["L", "R", "C", "LFE", "Ls", "Rs"]
+            case .surround71: return ["L", "R", "C", "LFE", "Ls", "Rs", "Lrs", "Rrs"]
+            default: return ["L", "R"]
+            }
+        }
+    }
 
-    /// Left source ID of the monitor source pair (DAW 1–2 = 0xC0).
-    @Published private(set) var source: Int = 0xC0
-    /// Left destination ID of each speaker's output pair, or nil when unassigned.
-    @Published private(set) var pairs: [Int?] = [0x20, nil, nil, nil]
-    @Published private(set) var active = 0
+    /// Left source ID of the stereo source (DAW 1–2 = 0xC0).
+    @Published private(set) var source = 0xC0
+    /// First DAW channel of the surround source (0xC0 = DAW 1).
+    @Published private(set) var surroundStart = 0xC0
+    /// Left destination ID of each stereo pair (Analog Out 1–2 = 0x20); ALT and MINI can be off.
+    @Published private(set) var main = 0x20
+    @Published private(set) var alt: Int?
+    @Published private(set) var mini: Int?
+    @Published private(set) var mode: Mode = .main
 
-    private let store: Store
-    private let url: URL
+    /// Outputs this drove last time (cleared to None when they stop being used).
+    private var driven: Set<Int> = []
     private var configured = false
 
+    private let value: (String) -> Double?
+    private let send: (String, Double, Bool) -> Void
+    private let later: (@escaping () -> Void) -> Void
+    private let url: URL
+
     init(store: Store, url: URL = Speakers.defaultURL) {
-        self.store = store
+        self.value = { store.value($0) }
+        self.send = { store.set($0, $1, float: $2) }
+        self.later = { f in
+            nonisolated(unsafe) let f = f        // runs on the main queue, where it was made
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { f() }
+        }
+        self.url = url
+        load()
+    }
+
+    /// For tests: the box's values and the writes go through closures.
+    init(value: @escaping (String) -> Double?, send: @escaping (String, Double, Bool) -> Void, url: URL) {
+        self.value = value
+        self.send = send
+        self.later = { $0() }
         self.url = url
         load()
     }
@@ -40,106 +87,134 @@ final class Speakers: ObservableObject {
         return Names.outputPairs.first { $0.id == dest }?.name ?? String(format: "Output 0x%02X", dest)
     }
 
-    static func isAnalog(_ dest: Int) -> Bool { (0x20...0x27).contains(dest) }
-
-    /// The box speaker layout that puts every assigned analog pair under the main level.
-    var neededLayout: Int {
-        let top = pairs.compactMap { $0 }.filter(Self.isAnalog).max() ?? 0x20
-        return top <= 0x20 ? 2 : top <= 0x24 ? 5 : 6
+    func pair(_ m: Mode) -> Int? {
+        switch m { case .main: return main; case .alt: return alt; case .mini: return mini; default: return nil }
     }
 
-    /// Analog outputs the main level, dim and mute act on.
-    var coveredOutputs: String {
-        switch neededLayout { case 2: return "Analog Out 1–2"; case 5: return "Analog Out 1–6"; default: return "Analog Out 1–8" }
+    func isAvailable(_ m: Mode) -> Bool { !m.isStereo || pair(m) != nil }
+
+    /// Pairs a stereo slot may use: every pair except those the other two slots use.
+    func choices(for m: Mode) -> [Names.Item] {
+        let taken = Set([Mode.main, .alt, .mini].filter { $0 != m }.compactMap { pair($0) })
+        return Names.outputPairs.filter { !taken.contains($0.id) }
+    }
+
+    /// Output → source for the current mode.
+    var targets: [Int: Int] {
+        if mode.isStereo, let p = pair(mode) { return [p: source, p + 1: source == Names.none ? Names.none : source + 1] }
+        var t: [Int: Int] = [:]
+        for k in 0..<mode.channels { t[0x20 + k] = surroundStart + k }
+        return t
+    }
+
+    /// The box's speaker layout that puts what's playing under the main level.
+    var layout: Int {
+        let top = targets.keys.filter { (0x20...0x27).contains($0) }.max() ?? 0x21
+        return top <= 0x21 ? 2 : top <= 0x25 ? 5 : 6
+    }
+
+    var coveredOutputs: String { layout == 2 ? "Analog Out 1–2" : layout == 5 ? "Analog Out 1–6" : "Analog Out 1–8" }
+
+    /// What the engineer should know about the current mode.
+    var notice: String? {
+        switch mode {
+        case .quad:
+            return "QUAD plays on Analog Out 1–4: L and R on Out 1–2, rear left and right on Out 3–4. Repatch your rear speakers to Analog Out 3–4."
+                + (main != 0x20 ? " Your MAIN pair isn't Out 1–2, so the fronts need repatching to Out 1–2 too." : "")
+        case .surround51:
+            return "5.1 plays on Analog Out 1–6 in the order L, R, C, LFE, Ls, Rs. Set your DAW's 5.1 output to this order (Pro Tools' default is L C R Ls Rs LFE)."
+        case .surround71:
+            return "7.1 plays on Analog Out 1–8 in the order L, R, C, LFE, Ls, Rs, Lrs, Rrs."
+        default:
+            return nil
+        }
     }
 
     // MARK: actions
 
-    func select(_ i: Int) {
-        guard pairs[i] != nil else { return }
-        active = i
+    func select(_ m: Mode) {
+        guard isAvailable(m) else { return }
+        mode = m
         apply()
     }
 
-    func setSource(_ left: Int) {
-        source = left
+    func setSource(_ left: Int) { source = left; apply() }
+    func setSurroundStart(_ first: Int) { surroundStart = first; apply() }
+
+    /// Sets a stereo slot's pair (nil = off; MAIN can't be off). A pair another slot uses is refused.
+    func assign(_ m: Mode, _ p: Int?) {
+        guard m.isStereo else { return }
+        if let p, !choices(for: m).contains(where: { $0.id == p }) { return }
+        switch m {
+        case .main: if let p { main = p }
+        case .alt: alt = p
+        case .mini: mini = p
+        default: break
+        }
+        if !isAvailable(mode) { mode = .main }
         apply()
     }
 
-    func assign(_ i: Int, pair: Int?) {
-        // A pair belongs to one speaker; switching it off routes it to None.
-        if let pair { for j in pairs.indices where j != i && pairs[j] == pair { pairs[j] = nil } }
-        if let old = pairs[i], old != pair { route(old, to: Names.none) }
-        pairs[i] = pair
-        if pairs[active] == nil, let first = pairs.firstIndex(where: { $0 != nil }) { active = first }
-        apply()
-    }
-
-    /// Routes the source to the active pair, None to the other speaker pairs, and sets the layout.
     private func apply() {
         configured = true
-        for (j, p) in pairs.enumerated() {
-            guard let p else { continue }
-            route(p, to: j == active ? source : Names.none)
+        let t = targets
+        for dest in driven.subtracting(t.keys) {
+            send("/symphony/route/\(dest)", Double(Names.none), false)
         }
+        for (dest, src) in t.sorted(by: { $0.key < $1.key }) {
+            send("/symphony/route/\(dest)", Double(src), false)
+        }
+        driven = Set(t.keys)
         setLayout()
         save()
     }
 
-    private func route(_ pair: Int, to left: Int) {
-        store.set("/symphony/route/\(pair)", Double(left), float: false)
-        store.set("/symphony/route/\(pair + 1)", Double(left == Names.none ? Names.none : left + 1), float: false)
+    private func setLayout() {
+        let path = "/symphony/monitor/main/mode"
+        guard Int(value(path) ?? -1) != layout else { return }
+        let mute = value("/symphony/monitor/main/mute") ?? 0
+        let dim = value("/symphony/monitor/main/dim") ?? 0
+        send(path, Double(layout), false)
+        send("/symphony/monitor/speakerset", 0, false)
+        later { [send] in
+            send("/symphony/monitor/main/mute", mute, false)
+            send("/symphony/monitor/main/dim", dim, false)
+        }
     }
 
-    /// Changing the layout resets the box's main mute (measured), so mute and dim are put back.
-    private func setLayout() {
-        let mode = "/symphony/monitor/main/mode"
-        let need = neededLayout
-        guard Int(store.value(mode) ?? -1) != need else { return }
-        let mute = store.value("/symphony/monitor/main/mute") ?? 0
-        let dim = store.value("/symphony/monitor/main/dim") ?? 0
-        store.set(mode, Double(need), float: false)
-        store.set("/symphony/monitor/speakerset", 0, float: false)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [store] in
-            store.set("/symphony/monitor/main/mute", mute, float: false)
-            store.set("/symphony/monitor/main/dim", dim, float: false)
-        }
+    /// Before the first change, show what Out 1–2 plays now as the stereo source.
+    func adoptCurrentSource() {
+        guard !configured, let v = value("/symphony/route/32"), Int(v) != Names.none else { return }
+        source = Int(v)
     }
 
     // MARK: file
 
-    private struct File: Codable { var source: Int; var pairs: [Int?]; var active: Int }
+    private struct File: Codable {
+        var source: Int, surroundStart: Int, main: Int, alt: Int?, mini: Int?, mode: Mode, driven: [Int]
+    }
 
     private func load() {
-        guard let d = try? Data(contentsOf: url), let f = try? JSONDecoder().decode(File.self, from: d),
-              f.pairs.count == 4 else { return }
-        source = f.source; pairs = f.pairs; active = min(max(f.active, 0), 3)
+        guard let d = try? Data(contentsOf: url), let f = try? JSONDecoder().decode(File.self, from: d) else { return }
+        source = f.source; surroundStart = f.surroundStart; main = f.main; alt = f.alt; mini = f.mini
+        mode = f.mode; driven = Set(f.driven)
         configured = true
     }
 
     private func save() {
         try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-        if let d = try? JSONEncoder().encode(File(source: source, pairs: pairs, active: active)) {
-            try? d.write(to: url, options: .atomic)
-        }
-    }
-
-    /// Before the first change, show what Out 1–2 plays now as the source.
-    func adoptCurrentSource() {
-        guard !configured, let v = store.value("/symphony/route/32") else { return }
-        let id = Int(v)
-        if id != Names.none { source = id }
+        let f = File(source: source, surroundStart: surroundStart, main: main, alt: alt, mini: mini, mode: mode, driven: driven.sorted())
+        if let d = try? JSONEncoder().encode(f) { try? d.write(to: url, options: .atomic) }
     }
 }
 
 /// Speakers section for the Monitoring page.
 struct SpeakerSetup: View {
-    @EnvironmentObject var store: Store
     @EnvironmentObject var speakers: Speakers
 
     var body: some View {
         SwiftUI.Section {
-            Picker("Monitor source", selection: Binding(get: { speakers.source }, set: { speakers.setSource($0) })) {
+            Picker("Stereo source", selection: Binding(get: { speakers.source }, set: { speakers.setSource($0) })) {
                 SwiftUI.Section("Headphone mixes") {
                     Text("Bus A").tag(Names.busA)
                     Text("Bus B").tag(Names.busB)
@@ -147,31 +222,51 @@ struct SpeakerSetup: View {
                 SwiftUI.Section("Pairs") {
                     ForEach(Names.sourcePairs.filter { $0.id != Names.busA && $0.id != Names.busB }) { Text($0.name).tag($0.id) }
                 }
-                if !Names.sourcePairs.contains(where: { $0.id == speakers.source }) && speakers.source != Names.busA && speakers.source != Names.busB {
+                if ![Names.busA, Names.busB].contains(speakers.source) && !Names.sourcePairs.contains(where: { $0.id == speakers.source }) {
                     Text(Names.source(speakers.source)).tag(speakers.source)
                 }
             }
-            ForEach(0..<4, id: \.self) { i in
+            ForEach([Speakers.Mode.main, .alt, .mini]) { m in
                 HStack {
-                    Picker("Speakers \(Speakers.names[i])", selection: Binding<Int>(
-                        get: { speakers.pairs[i] ?? -1 },
-                        set: { speakers.assign(i, pair: $0 < 0 ? nil : $0) })) {
-                        Text("Off").tag(-1)
-                        ForEach(Names.outputPairs) { Text($0.name).tag($0.id) }
+                    Picker(m.title, selection: Binding<Int>(
+                        get: { speakers.pair(m) ?? -1 },
+                        set: { speakers.assign(m, $0 < 0 ? nil : $0) })) {
+                        if m != .main { Text("Off").tag(-1) }
+                        ForEach(speakers.choices(for: m)) { Text($0.name).tag($0.id) }
                     }
-                    if speakers.active == i && speakers.pairs[i] != nil {
-                        Text("ACTIVE").font(.caption2).bold().foregroundStyle(Color.accentColor)
-                    } else if speakers.pairs[i] != nil {
-                        Button("Select") { speakers.select(i) }.controlSize(.small)
-                    }
+                    activeMark(m)
                 }
             }
+            Picker("Surround source", selection: Binding(get: { speakers.surroundStart }, set: { speakers.setSurroundStart($0) })) {
+                Text("DAW 1–8").tag(0xC0)
+                Text("DAW 9–16").tag(0xC8)
+            }
+            HStack(spacing: 8) {
+                Text("Surround").foregroundStyle(.secondary)
+                Spacer()
+                ForEach([Speakers.Mode.quad, .surround51, .surround71]) { m in
+                    Button(m.title) { speakers.select(m) }
+                        .buttonStyle(.bordered)
+                        .tint(speakers.mode == m ? .accentColor : nil)
+                }
+            }
+            if let n = speakers.notice {
+                Label(n, systemImage: "info.circle").font(.callout).foregroundStyle(.orange)
+            }
         } header: {
-            Text("Main output and speakers")
+            Text("Speakers")
         } footer: {
-            Text("The monitor source plays on the active speakers; the other assigned pairs are silent. The main level, DIM and MUTE act on \(speakers.coveredOutputs) (the box's speaker outputs start at Out 1), so don't use those outputs for line-level sends. Optical pairs switch but have no level control. Mirroring headphones follow the output they mirror, so a headphone mirroring the speakers goes quiet when you switch to another pair.")
+            Text("MAIN, ALT and MINI play the stereo source on their pair; QUAD, 5.1 and 7.1 play DAW channels straight to Analog Out 1–4, 1–6 or 1–8. Pressing a stereo button goes back to stereo on that pair, and only outputs used here are switched. The main level, DIM and MUTE act on \(speakers.coveredOutputs) right now (the box counts its speaker outputs from Out 1), so don't use those for line-level sends. Optical pairs switch but have no level control.")
                 .font(.caption).foregroundStyle(.secondary)
         }
         .onAppear { speakers.adoptCurrentSource() }
+    }
+
+    @ViewBuilder private func activeMark(_ m: Speakers.Mode) -> some View {
+        if speakers.mode == m {
+            Text("ACTIVE").font(.caption2).bold().foregroundStyle(Color.accentColor)
+        } else if speakers.isAvailable(m) {
+            Button("Select") { speakers.select(m) }.controlSize(.small)
+        }
     }
 }
