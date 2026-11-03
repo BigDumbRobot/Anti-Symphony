@@ -5,18 +5,20 @@ struct SymphonyControlApp: App {
     @StateObject private var store: Store
     @StateObject private var calibration: Calibration
     @StateObject private var processing = InputProcessing()
+    @StateObject private var speakers: Speakers
 
     init() {
         let s = Store()
         _store = StateObject(wrappedValue: s)
         _calibration = StateObject(wrappedValue: Calibration(store: s, meters: s.meters))
+        _speakers = StateObject(wrappedValue: Speakers(store: s))
     }
 
     var body: some Scene {
         Window("Symphony Control", id: "main") {
             ContentView()
                 .environmentObject(store).environmentObject(store.meters)
-                .environmentObject(calibration).environmentObject(processing)
+                .environmentObject(calibration).environmentObject(processing).environmentObject(speakers)
         }
         .defaultSize(width: 1000, height: 720)
         .commands {
@@ -29,7 +31,7 @@ struct SymphonyControlApp: App {
         }
 
         MenuBarExtra("Symphony", systemImage: "hifispeaker.fill") {
-            MenuBarView().environmentObject(store).environmentObject(store.meters)
+            MenuBarView().environmentObject(store).environmentObject(store.meters).environmentObject(speakers)
         }
         .menuBarExtraStyle(.window)
     }

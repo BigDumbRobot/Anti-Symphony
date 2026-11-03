@@ -4,6 +4,7 @@ import SwiftUI
 /// headphones (level, Bus A/B feed, mute). Shown in the menu bar and on the Monitoring page.
 struct MonitorController: View {
     @EnvironmentObject var store: Store
+    @EnvironmentObject var speakers: Speakers
 
     private let main = "/symphony/monitor/main"
 
@@ -11,7 +12,7 @@ struct MonitorController: View {
         VStack(spacing: 14) {
             header
             HStack(alignment: .center, spacing: 18) {
-                stereoMeter(dest: 0x20, labels: ("L", "R"))
+                stereoMeter(dest: speakers.pairs[speakers.active] ?? 0x20, labels: ("L", "R"))
                 RotaryKnob(value: store.level("\(main)/level"), size: 168, label: "MAIN",
                            dimmed: store.flag("\(main)/dim").wrappedValue)
                 stereoMeter(dest: 0x20, labels: ("L", "R")).hidden()     // keeps the knob centred
@@ -20,7 +21,7 @@ struct MonitorController: View {
                 PanelKey(title: "DIM", isOn: store.flag("\(main)/dim"), color: .orange, width: 118, height: 44)
                 PanelKey(title: "MUTE", isOn: store.flag("\(main)/mute"), color: .red, width: 118, height: 44)
             }
-            speakers
+            speakerRow
             Rectangle().fill(Color.black.opacity(0.5)).frame(height: 1)
             HStack(alignment: .top, spacing: 0) {
                 headphone(1)
@@ -47,16 +48,19 @@ struct MonitorController: View {
         }
     }
 
-    private var speakers: some View {
-        let set = Int(store.value("/symphony/monitor/speakerset") ?? 0)
-        return HStack(spacing: 6) {
+    private var speakerRow: some View {
+        HStack(spacing: 6) {
             Text("SPEAKERS").font(.system(size: 9, weight: .semibold)).tracking(1).foregroundStyle(Panel.label)
             Spacer(minLength: 4)
             ForEach(0..<4, id: \.self) { s in
-                SelectKey(title: ["A", "B", "C", "D"][s], selected: set == s, width: 34) {
-                    store.set("/symphony/monitor/speakerset", Double(s), float: false)
+                let assigned = speakers.pairs[s] != nil
+                SelectKey(title: Speakers.names[s], selected: assigned && speakers.active == s, width: 34) {
+                    speakers.select(s)
                 }
-                .help("Speaker set \(["A", "B", "C", "D"][s])")
+                .opacity(assigned ? 1 : 0.35)
+                .disabled(!assigned)
+                .help(assigned ? "Speakers \(Speakers.names[s]): \(Speakers.pairName(speakers.pairs[s]))"
+                               : "Speakers \(Speakers.names[s]) isn't assigned (Monitoring page)")
             }
             Spacer(minLength: 4)
             PanelKey(title: "MONO", isOn: store.flag("\(main)/mono"), color: Panel.ring, width: 52, height: 30,
@@ -70,7 +74,7 @@ struct MonitorController: View {
             DestinationLED(dest: dest + 1)
         }
         .frame(height: 130)
-        .help("Analog Out 1–2")
+        .help(Speakers.pairName(speakers.pairs[speakers.active] ?? 0x20))
     }
 
     private func headphone(_ h: Int) -> some View {

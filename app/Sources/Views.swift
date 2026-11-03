@@ -129,6 +129,7 @@ struct MonitoringView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 6)
             }
+            SpeakerSetup()
             ForEach(1...2, id: \.self) { h in
                 SwiftUI.Section("Headphones \(h)") {
                     HStack {
