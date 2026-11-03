@@ -65,15 +65,15 @@ struct MonitorController: View {
             HStack(spacing: 6) {
                 ForEach([Speakers.Mode.quad, .surround51, .surround71]) { m in
                     SelectKey(title: m.title, selected: speakers.mode == m, color: .purple, width: 54) { speakers.select(m) }
-                        .help("\(m.title): Analog Out 1–\(m.channels) (\(m.channelNames.joined(separator: " ")))")
+                        .help("\(m.title): \(m.outputsText) (\(m.channelNames.joined(separator: " ")))")
                 }
                 Spacer(minLength: 4)
-                Text(speakers.mode.isStereo ? Speakers.pairName(speakers.pair(speakers.mode)) : "OUT 1–\(speakers.mode.channels)")
+                Text(speakers.mode.isStereo ? Speakers.pairName(speakers.pair(speakers.mode)) : speakers.mode.outputsText.uppercased())
                     .font(.system(size: 9, weight: .semibold)).foregroundStyle(Panel.label)
                     .frame(width: 60).lineLimit(1).minimumScaleFactor(0.7)
             }
             if speakers.mode == .quad {
-                Text("Rear speakers: repatch to Analog Out 3–4")
+                Text("Front: Analog Out 1–2 · Rear: Analog Out 7–8")
                     .font(.system(size: 9, weight: .semibold)).foregroundStyle(.orange)
             }
         }

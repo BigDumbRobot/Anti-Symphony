@@ -5,8 +5,8 @@ import SwiftUI
 ///
 /// - MAIN, ALT, MINI: each any stereo output pair (ALT and MINI can be off; no pair is used twice).
 ///   The stereo source plays on the selected pair.
-/// - QUAD (Out 1–4: L R Ls Rs), 5.1 (Out 1–6: L R C LFE Ls Rs), 7.1 (Out 1–8: L R C LFE Ls Rs Lrs Rrs):
-///   DAW channels from the surround start, straight to the analog outputs in that order.
+/// - QUAD (L R on Out 1–2, Ls Rs on Out 7–8), 5.1 (Out 1–6: L R C LFE Ls Rs), 7.1 (Out 1–8: L R C LFE Ls Rs Lrs Rrs):
+///   DAW channels from the surround start, in that order.
 /// Pressing a stereo pair while in surround goes back to stereo on that pair.
 ///
 /// Switching is done by routing: whatever this drove before and doesn't drive now gets "None",
@@ -26,7 +26,20 @@ final class Speakers: ObservableObject {
             }
         }
         var isStereo: Bool { self == .main || self == .alt || self == .mini }
-        /// Surround channel count (analog outputs 1…n).
+        /// Analog outputs each surround channel plays on (destination IDs), in channel order.
+        var outputs: [Int] {
+            switch self {
+            case .quad: return [0x20, 0x21, 0x26, 0x27]          // fronts Out 1–2, rears Out 7–8
+            case .surround51: return Array(0x20...0x25)
+            case .surround71: return Array(0x20...0x27)
+            default: return []
+            }
+        }
+        /// Where it plays, for labels.
+        var outputsText: String {
+            switch self { case .quad: return "Out 1–2 + 7–8"; case .surround51: return "Out 1–6"; case .surround71: return "Out 1–8"; default: return "" }
+        }
+        /// Surround channel count.
         var channels: Int { switch self { case .quad: return 4; case .surround51: return 6; case .surround71: return 8; default: return 2 } }
         var channelNames: [String] {
             switch self {
@@ -103,7 +116,7 @@ final class Speakers: ObservableObject {
     var targets: [Int: Int] {
         if mode.isStereo, let p = pair(mode) { return [p: source, p + 1: source == Names.none ? Names.none : source + 1] }
         var t: [Int: Int] = [:]
-        for k in 0..<mode.channels { t[0x20 + k] = surroundStart + k }
+        for (k, dest) in mode.outputs.enumerated() { t[dest] = surroundStart + k }
         return t
     }
 
@@ -119,8 +132,7 @@ final class Speakers: ObservableObject {
     var notice: String? {
         switch mode {
         case .quad:
-            return "QUAD plays on Analog Out 1–4: L and R on Out 1–2, rear left and right on Out 3–4. Repatch your rear speakers to Analog Out 3–4."
-                + (main != 0x20 ? " Your MAIN pair isn't Out 1–2, so the fronts need repatching to Out 1–2 too." : "")
+            return "QUAD: front L and R play on Analog Out 1–2, rear L and R on Analog Out 7–8 (DAW channels 1–2 front, 3–4 rear from the surround source). Analog Out 3–6 also follow the main level while QUAD is on."
         case .surround51:
             return "5.1 plays on Analog Out 1–6 in the order L, R, C, LFE, Ls, Rs. Set your DAW's 5.1 output to this order (Pro Tools' default is L C R Ls Rs LFE)."
         case .surround71:
@@ -256,7 +268,7 @@ struct SpeakerSetup: View {
         } header: {
             Text("Speakers")
         } footer: {
-            Text("MAIN, ALT and MINI play the stereo source on their pair; QUAD, 5.1 and 7.1 play DAW channels straight to Analog Out 1–4, 1–6 or 1–8. Pressing a stereo button goes back to stereo on that pair, and only outputs used here are switched. The main level, DIM and MUTE act on \(speakers.coveredOutputs) right now (the box counts its speaker outputs from Out 1), so don't use those for line-level sends. Optical pairs switch but have no level control.")
+            Text("MAIN, ALT and MINI play the stereo source on their pair; QUAD plays DAW channels on Analog Out 1–2 (front) and 7–8 (rear); 5.1 and 7.1 on Analog Out 1–6 and 1–8. Pressing a stereo button goes back to stereo on that pair, and only outputs used here are switched. The main level, DIM and MUTE act on \(speakers.coveredOutputs) right now (the box counts its speaker outputs from Out 1), so don't use those for line-level sends. Optical pairs switch but have no level control.")
                 .font(.caption).foregroundStyle(.secondary)
         }
         .onAppear { speakers.adoptCurrentSource() }
