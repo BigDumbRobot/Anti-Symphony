@@ -68,6 +68,18 @@ Verified on the box: Analog In 3 → Pink Spider-DMP (fresh, minimum 6 dB gain) 
 
 Through-the-Mac time, from the device's figures: about 5 ms at a 32-sample buffer at 48 kHz (2 × buffer + latencies + safety offsets + stream latencies). RemoteSession measured this box's loop at 522 samples with a 128 buffer, a few samples off the prediction; measure it the same way before relying on the figure.
 
+### 1:1 delivery to the DAW (built)
+
+Processed input N arrives on the box's recording channel N, so the DAW's input N is the processed signal. Its dry copy moves to a spare recording channel (16 down), which the engine reads; what that channel carried comes back when processing stops.
+
+### Measured on the box and in Pro Tools Developer (2026-11-03)
+
+Clicks, Analog Out 3 → compressor → Analog In 3, Pink Spider-DMP on In 3, engine buffer 32, Pro Tools' buffer 512:
+
+- DAW input 3 (processed, 1:1): round trip 1389 frames; the dry copy: 1198. **The processed path adds a constant 191 frames (3.98 ms)**, every click identical.
+- Recorded with `rsession record -ptsl` against a Pro Tools session while it played, delivered twice from the same take: with the device's input latency (74) the processed clicks sit **+190** frames after the dry ones; with 74 + 191 = 265 they sit **−1** frame from the dry ones, on all 8 clicks. So the timestamp method with the measured path latency puts processed audio where the dry audio would be.
+- Placement in the session via PTSL polling is only known to ±897 frames; the Link plugin makes it exact (RemoteSession, section 7). Next: the Link insert on the record track and the engine writing the take itself.
+
 ### Layers
 
 1. **The box's mixers (Bus A / Bus B): dry, zero latency.** Headphones always hear inputs routed directly here.

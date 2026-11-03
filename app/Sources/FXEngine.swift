@@ -27,6 +27,11 @@ final class FXEngine: ObservableObject {
     @Published private(set) var returns: [Int: Int] = [:]
     /// Problems per input channel (no recording channel carries it, a plugin didn't load…).
     @Published private(set) var problems: [Int: String] = [:]
+    /// 1:1 delivery to the DAW: processed input N arrives on recording channel N ("To Mac N"), and
+    /// its dry copy moves to a spare recording channel (input channel → spare To Mac destination).
+    @Published private(set) var dryCopies: [Int: Int] = [:]
+    /// What each spare recording channel carried before it was borrowed (destination → source).
+    private var borrowed: [Int: Int] = [:]
 
     let meters = FXMeters()
 
@@ -49,6 +54,12 @@ final class FXEngine: ObservableObject {
         self.proc = proc
         self.cal = cal
         enabled = UserDefaults.standard.object(forKey: "fxEnabled") as? Bool ?? true
+        if let d = UserDefaults.standard.dictionary(forKey: "fxDryCopies") as? [String: Int] {
+            dryCopies = Dictionary(uniqueKeysWithValues: d.compactMap { k, v in Int(k).map { ($0, v) } })
+        }
+        if let d = UserDefaults.standard.dictionary(forKey: "fxBorrowed") as? [String: Int] {
+            borrowed = Dictionary(uniqueKeysWithValues: d.compactMap { k, v in Int(k).map { ($0, v) } })
+        }
         let b = UserDefaults.standard.integer(forKey: "fxBuffer")
         bufferFrames = b > 0 ? b : 32
         timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
@@ -181,6 +192,7 @@ final class FXEngine: ObservableObject {
         if dev != device { stop(); device = dev }
         let returns = allocateReturns(plans)
         var problems: [Int: String] = [:]
+        deliverOneToOne(returns, problems: &problems)
         var strips: [FXStrip] = []
         var used = Set<String>()
 
@@ -282,6 +294,43 @@ final class FXEngine: ObservableObject {
         running = true
     }
 
+    // MARK: 1:1 delivery to the DAW
+
+    private func route(_ dest: Int) -> Int? { store.value("/symphony/route/\(dest)").map(Int.init) }
+    private func setRoute(_ dest: Int, _ src: Int) { store.set("/symphony/route/\(dest)", Double(src), float: false) }
+
+    /// Processed input N goes to recording channel N; its dry copy moves to a spare recording
+    /// channel (To Mac 16 down) so the engine can still read it. Inputs no longer processed get
+    /// their recording channel back, and borrowed channels get back what they carried.
+    private func deliverOneToOne(_ returns: [Int: Int], problems: UnsafeMutablePointer<[Int: String]>?) {
+        // Undo inputs that aren't processed any more.
+        for (ch, spare) in dryCopies where returns[ch] == nil {
+            setRoute(0xD0 + ch - 1, 0x20 + ch - 1)
+            setRoute(spare, borrowed[spare] ?? Names.none)
+            borrowed.removeValue(forKey: spare)
+            dryCopies.removeValue(forKey: ch)
+        }
+        let own = Set(returns.keys.map { 0xD0 + $0 - 1 })
+        for ch in returns.keys.sorted() {
+            let dest = 0xD0 + ch - 1, dry = 0x20 + ch - 1, wet = 0xC0 + returns[ch]! - 1
+            if dryCopies[ch] == nil {
+                // A spare: To Mac 16 down, not some processed input's own channel, not already a dry copy.
+                let taken = Set(dryCopies.values)
+                guard let spare = (0xD8...0xDF).reversed().first(where: { !own.contains($0) && !taken.contains($0) }) else {
+                    problems?.pointee[ch] = "No spare recording channel for the dry copy, so the DAW gets this input dry."
+                    continue
+                }
+                borrowed[spare] = route(spare) ?? Names.none
+                setRoute(spare, dry)          // dry copy first, so the engine never loses the input
+                dryCopies[ch] = spare
+            }
+            if route(dryCopies[ch]!) != dry { setRoute(dryCopies[ch]!, dry) }
+            if route(dest) != wet { setRoute(dest, wet) }
+        }
+        UserDefaults.standard.set(Dictionary(uniqueKeysWithValues: dryCopies.map { (String($0.key), $0.value) }), forKey: "fxDryCopies")
+        UserDefaults.standard.set(Dictionary(uniqueKeysWithValues: borrowed.map { (String($0.key), $0.value) }), forKey: "fxBorrowed")
+    }
+
     // MARK: processed audio in the headphones
 
     /// Headphone mix inputs (Bus A, Bus B) and the headphone feeds.
@@ -341,6 +390,7 @@ final class FXEngine: ObservableObject {
         graph.withLock { $0 = nil }
         running = false
         revertPhones(from: returns, to: [:])
+        deliverOneToOne([:], problems: nil)
         returns = [:]
         Names.returnLabels = [:]
     }
