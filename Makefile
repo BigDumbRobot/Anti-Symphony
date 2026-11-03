@@ -1,7 +1,9 @@
 # Command Line Tools are enough (no Xcode needed).
 CC      = clang
 VERSION := $(shell cat VERSION)
-CFLAGS  = -O2 -Wall -Wextra -Werror -Wno-unused-parameter -Ilib -DSYM_VERSION='"$(VERSION)"'
+# The installer builds with WERROR= so a newer compiler's new warnings can't stop a user's build.
+WERROR ?= -Werror
+CFLAGS  = -O2 -Wall -Wextra $(WERROR) -Wno-unused-parameter -Ilib -DSYM_VERSION='"$(VERSION)"'
 LDLIBS  = -framework IOKit -framework CoreFoundation
 
 all: build/symphonyd build/symctl build/usbdesc build/avbbridge build/symtest

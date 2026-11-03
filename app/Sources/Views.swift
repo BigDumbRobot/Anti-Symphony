@@ -51,12 +51,16 @@ struct ContentView: View {
             .frame(minWidth: 560, minHeight: 420)
             .navigationTitle((section ?? .monitoring).rawValue)
             .toolbar {
+                #if compiler(>=6.2)     // macOS 26 SDK: no glass capsule behind the badge
                 if #available(macOS 26, *) {
                     ToolbarItem(placement: .primaryAction) { CanadaBadge() }
                         .sharedBackgroundVisibility(.hidden)
                 } else {
                     ToolbarItem(placement: .primaryAction) { CanadaBadge() }
                 }
+                #else
+                ToolbarItem(placement: .primaryAction) { CanadaBadge() }
+                #endif
             }
         }
         .overlay(alignment: .bottom) { ErrorBanner() }

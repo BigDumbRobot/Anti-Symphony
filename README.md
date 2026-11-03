@@ -16,7 +16,24 @@ On Tahoe the Mac sees the Symphony fine, and Apple's built-in USB audio driver o
 
 ## Install
 
-Command Line Tools are enough (no Xcode needed).
+Open **Terminal** (in Applications → Utilities), paste this line and press Return:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/BigDumbRobot/Anti-Symphony/main/install.sh | bash
+```
+
+That's it. The installer:
+- installs Apple's free Command Line Tools if they're missing (a window asks you to click Install);
+- downloads the source and builds it on your Mac (a minute or two), so macOS doesn't block it as an unsigned download;
+- installs **Symphony Control** in `~/Applications` and starts it, and installs `symphonyd` to start at login.
+
+No admin password and no kernel extension. Needs macOS 14 (Sonoma) or later. Run the same line again to update.
+
+Remove it: `curl -fsSL https://raw.githubusercontent.com/BigDumbRobot/Anti-Symphony/main/install.sh | bash -s -- --uninstall` (your profiles and settings are kept).
+
+Prefer clicking? Download the source (green **Code** button → **Download ZIP**), unzip it, and double-click **Install Anti-Symphony.command**. The first time, macOS may say it can't verify the file: right-click it and choose **Open**.
+
+### For developers
 
 ```sh
 make install
@@ -24,7 +41,7 @@ make install
 
 This builds everything, puts **Symphony Control** (the Maestro replacement) in `~/Applications`, and installs `symphonyd` as a LaunchAgent for your user: it starts at login and restarts if it ever exits. The log is `~/Library/Logs/symphonyd.log`. Remove it all with `make uninstall`.
 
-Other targets: `make` (build only, warnings are errors), `make test` (hardware tests, see [tests/README.md](tests/README.md)), `make dist` (release zip), `make clean`. The version is in `VERSION`.
+Other targets: `make` (build only, warnings are errors), `make test` (hardware tests, see [tests/README.md](tests/README.md)), `swift test --package-path app` (app tests), `make dist` (release zip), `make clean`. The version is in `VERSION`.
 
 ## What you get
 
