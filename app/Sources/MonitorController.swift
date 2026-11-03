@@ -4,7 +4,6 @@ import SwiftUI
 /// headphones (level, Bus A/B feed, mute). Shown in the menu bar and on the Monitoring page.
 struct MonitorController: View {
     @EnvironmentObject var store: Store
-    @EnvironmentObject var meters: Meters
 
     private let main = "/symphony/monitor/main"
 
@@ -67,8 +66,8 @@ struct MonitorController: View {
 
     private func stereoMeter(dest: Int, labels: (String, String)) -> some View {
         HStack(spacing: 3) {
-            LEDMeter(db: Levels.destination(dest, store: store, meters: meters))
-            LEDMeter(db: Levels.destination(dest + 1, store: store, meters: meters))
+            DestinationLED(dest: dest)
+            DestinationLED(dest: dest + 1)
         }
         .frame(height: 130)
         .help("Analog Out 1–2")
@@ -83,10 +82,10 @@ struct MonitorController: View {
         return VStack(spacing: 8) {
             Text("PHONES \(h)").font(.system(size: 9, weight: .semibold)).tracking(1).foregroundStyle(Panel.label)
             HStack(spacing: 6) {
-                LEDMeter(db: Levels.destination(feed, store: store, meters: meters), segments: 14)
+                DestinationLED(dest: feed, segments: 14)
                 RotaryKnob(value: store.level("\(base)/level"), size: 74,
                            dimmed: store.flag("\(base)/dim").wrappedValue)
-                LEDMeter(db: Levels.destination(feed + 1, store: store, meters: meters), segments: 14)
+                DestinationLED(dest: feed + 1, segments: 14)
             }
             .frame(height: 74)
             HStack(spacing: 4) {

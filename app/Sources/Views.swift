@@ -117,7 +117,6 @@ struct ErrorBanner: View {
 struct MonitoringView: View {
     @EnvironmentObject var store: Store
 
-    @EnvironmentObject var meters: Meters
 
     var body: some View {
         Form {
@@ -130,8 +129,11 @@ struct MonitoringView: View {
                 SwiftUI.Section("Headphones \(h)") {
                     HStack {
                         headphoneSource(h)
-                        LEDPair(left: Levels.destination(Names.headphoneFeed(h), store: store, meters: meters),
-                                right: Levels.destination(Names.headphoneFeed(h) + 1, store: store, meters: meters))
+                        HStack(spacing: 2) {
+                            DestinationLED(dest: Names.headphoneFeed(h), segments: 10)
+                            DestinationLED(dest: Names.headphoneFeed(h) + 1, segments: 10)
+                        }
+                        .frame(height: 28)
                     }
                     Toggle("Mono", isOn: store.flag("/symphony/monitor/hp/\(h)/mono"))
                 }
@@ -195,7 +197,6 @@ extension MonitoringView {
 
 struct IOView: View {
     @EnvironmentObject var store: Store
-    @EnvironmentObject var meters: Meters
 
     var body: some View {
         Form {
@@ -212,7 +213,7 @@ struct IOView: View {
                     ForEach(1...8, id: \.self) { c in
                         GridRow {
                             Text("Analog \(c)")
-                            MeterBar(db: meters.input[c - 1]).frame(width: 110)
+                            InputMeterBar(index: c - 1).frame(width: 110)
                             refPicker("/symphony/io/analog/in/\(c)/ref", Names.inputRefLevels)
                             Toggle("", isOn: store.flag("/symphony/io/analog/in/\(c)/softlimit")).labelsHidden()
                             refPicker("/symphony/io/analog/out/\(c)/ref", Names.outputRefLevels)
@@ -241,7 +242,7 @@ struct IOView: View {
                                 VStack(alignment: .leading, spacing: 4) {
                                     HStack(spacing: 6) {
                                         Text("In \(c)").font(.caption).foregroundStyle(.secondary).frame(width: 40, alignment: .leading)
-                                        MeterBar(db: meters.input[7 + c]).frame(width: 70)
+                                        InputMeterBar(index: 7 + c).frame(width: 70)
                                     }
                                     HStack(spacing: 6) {
                                         Text("Out \(c)").font(.caption).foregroundStyle(.secondary).frame(width: 40, alignment: .leading)
@@ -275,7 +276,6 @@ struct IOView: View {
 
 struct RoutingView: View {
     @EnvironmentObject var store: Store
-    @EnvironmentObject var meters: Meters
 
     var body: some View {
         Form {
@@ -310,10 +310,10 @@ struct RoutingView: View {
 /// Output meter row: level of whatever feeds the destination; faint when it isn't measured.
 struct OutputMeter: View {
     @EnvironmentObject var store: Store
-    @EnvironmentObject var meters: Meters
+    @EnvironmentObject var outputMeters: Meters
     let dest: Int
     var body: some View {
-        let db = Levels.destination(dest, store: store, meters: meters)
+        let db = Levels.destination(dest, store: store, meters: outputMeters)
         MeterBar(db: db ?? Levels.silent).opacity(db == nil ? 0.25 : 1)
             .help(db == nil ? "Not measured (the box doesn't send output meters; DAW playback isn't metered yet)" : "")
     }
@@ -332,7 +332,6 @@ struct LEDPair: View {
 /// Bus A and Bus B: the two zero-latency headphone mixes (the box's hardware mixers 1 and 2).
 struct HeadphoneMixView: View {
     @EnvironmentObject var store: Store
-    @EnvironmentObject var meters: Meters
     @AppStorage("mixesBus") private var mixer = 1
 
     var body: some View {
@@ -369,8 +368,7 @@ struct HeadphoneMixView: View {
                     Divider()
                     Strip(title: "Return", base: "/symphony/mixer/\(mixer)/return")
                     Strip(title: Names.busName(mixer), base: "/symphony/mixer/\(mixer)/master", soloMute: false,
-                          busMeters: (Levels.bus(mixer, right: false, store: store, meters: meters),
-                                      Levels.bus(mixer, right: true, store: store, meters: meters)))
+                          busMixer: mixer)
                 }
                 .padding()
             }
@@ -391,12 +389,11 @@ struct HeadphoneMixView: View {
 
 struct Strip: View {
     @EnvironmentObject var store: Store
-    @EnvironmentObject var meters: Meters
     let title: String
     let base: String
     var route: String? = nil
     var soloMute = true
-    var busMeters: (Double?, Double?)? = nil
+    var busMixer: Int? = nil
 
     var body: some View {
         let fader = store.level("\(base)/fader", default: 0)
@@ -414,7 +411,7 @@ struct Strip: View {
                 .frame(width: 60)
                 .help("Source for this mixer input")
             }
-            if busMeters == nil {
+            if busMixer == nil {
                 PanControl(value: store.number("\(base)/pan"))
             } else {
                 Text("Output").font(.caption2).foregroundStyle(.secondary).frame(height: 26)
@@ -422,11 +419,11 @@ struct Strip: View {
             HStack(spacing: 4) {
                 VerticalFader(value: fader)
                     .frame(width: 44, height: 220)
-                if let busMeters {
-                    LEDMeter(db: busMeters.0, segments: 40).frame(height: 220)
-                    LEDMeter(db: busMeters.1, segments: 40).frame(height: 220)
+                if let busMixer {
+                    BusLED(mixer: busMixer, right: false, segments: 40).frame(height: 220)
+                    BusLED(mixer: busMixer, right: true, segments: 40).frame(height: 220)
                 } else if let src {
-                    LEDMeter(db: Levels.source(src, store: store, meters: meters), segments: 40).frame(height: 220)
+                    SourceLED(source: src, segments: 40).frame(height: 220)
                 }
             }
             .frame(minWidth: 56)

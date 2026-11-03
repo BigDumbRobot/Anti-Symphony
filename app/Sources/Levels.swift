@@ -1,4 +1,4 @@
-import Foundation
+import SwiftUI
 
 /// Levels for anything the box can route, from the input meters (the box sends no output meters).
 ///
@@ -47,4 +47,43 @@ enum Levels {
         if power <= 0 || master <= -48 || (store.value("\(base)/master/mute") ?? 0) != 0 { return silent }
         return 10 * log10(power) + master
     }
+}
+
+// Meter views. Each one watches the meters itself, so only the meter redraws ~15 times a
+// second. Pages that hold menus or pickers must not watch the meters: every redraw rebuilds
+// their menus and closes any menu that's open.
+
+/// Bar meter for board input `index` (0-based: Analog In 1–8, Optical In 1–8).
+struct InputMeterBar: View {
+    @EnvironmentObject var meters: Meters
+    let index: Int
+    var body: some View { MeterBar(db: meters.input[index]) }
+}
+
+/// LED meter for whatever feeds a destination.
+struct DestinationLED: View {
+    @EnvironmentObject var store: Store
+    @EnvironmentObject var meters: Meters
+    let dest: Int
+    var segments = 24
+    var body: some View { LEDMeter(db: Levels.destination(dest, store: store, meters: meters), segments: segments) }
+}
+
+/// LED meter for a routing source.
+struct SourceLED: View {
+    @EnvironmentObject var store: Store
+    @EnvironmentObject var meters: Meters
+    let source: Int
+    var segments = 24
+    var body: some View { LEDMeter(db: Levels.source(source, store: store, meters: meters), segments: segments) }
+}
+
+/// LED meter for one side of a headphone bus (estimated).
+struct BusLED: View {
+    @EnvironmentObject var store: Store
+    @EnvironmentObject var meters: Meters
+    let mixer: Int
+    let right: Bool
+    var segments = 24
+    var body: some View { LEDMeter(db: Levels.bus(mixer, right: right, store: store, meters: meters), segments: segments) }
 }

@@ -3,7 +3,6 @@ import SwiftUI
 /// Clock along the top, then calibration trims for every analog input and output.
 struct SettingsView: View {
     @EnvironmentObject var store: Store
-    @EnvironmentObject var meters: Meters
     @EnvironmentObject var cal: Calibration
     @State private var selectedOuts: Set<Int> = Set(3...8)
 
@@ -60,13 +59,10 @@ struct SettingsView: View {
                 .font(.caption)
                 ForEach(1...8, id: \.self) { c in
                     let trim = cal.inputTrim(c)
-                    let now = meters.input[c - 1]
                     GridRow {
                         Text("Analog In \(c)")
-                        MeterBar(db: now).frame(width: 110)
-                        Text(now <= -119 ? "—" : String(format: "%.1f", now + (trim ?? 0)))
-                            .monospacedDigit().foregroundStyle(.secondary)
-                            .help(trim == nil ? "dBFS" : "dBFS, with the trim applied")
+                        InputMeterBar(index: c - 1).frame(width: 110)
+                        TrimmedReading(index: c - 1, trim: trim)
                         Text(cal.inputs[c].map { String(format: "%.1f dBFS", 4 - $0.fullScaleDBu) } ?? "not measured")
                             .monospacedDigit().foregroundStyle(cal.inputs[c] == nil ? .secondary : .primary)
                         trimText(trim, stale: cal.inputStale(c))
@@ -137,5 +133,18 @@ struct SettingsView: View {
                     .help("Measured at a different +4 dBu / −10 dBV setting. Measure again.")
             }
         }
+    }
+}
+
+/// Live input reading with the trim applied (watches the meters on its own).
+private struct TrimmedReading: View {
+    @EnvironmentObject var meters: Meters
+    let index: Int
+    let trim: Double?
+    var body: some View {
+        let now = meters.input[index]
+        Text(now <= -119 ? "—" : String(format: "%.1f", now + (trim ?? 0)))
+            .monospacedDigit().foregroundStyle(.secondary)
+            .help(trim == nil ? "dBFS" : "dBFS, with the trim applied")
     }
 }

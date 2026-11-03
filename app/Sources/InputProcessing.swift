@@ -34,10 +34,15 @@ final class InputProcessing: ObservableObject {
     /// Linked pairs, by their odd (left) channel: 1, 3, 5 … 15.
     @Published private(set) var linked: Set<Int> = []
     @Published private(set) var available: [Plugin] = []
+    @Published var problem: String?
 
-    init() {
+    private let url: URL
+
+    /// `url` and `plugins` are for tests: another file, and a fixed plugin list instead of this Mac's.
+    init(url: URL = InputProcessing.defaultURL, plugins: [Plugin]? = nil) {
+        self.url = url
         load()
-        refreshPlugins()
+        if let plugins { available = plugins } else { refreshPlugins() }
     }
 
     static func name(_ ch: Int) -> String { ch <= 8 ? "Analog \(ch)" : "Optical \(ch - 8)" }
@@ -100,6 +105,13 @@ final class InputProcessing: ObservableObject {
         save()
     }
 
+    /// The plugin's saved settings (from its window), for the channel or the whole linked pair.
+    func setState(_ data: Data, channel ch: Int, slot: Int) {
+        guard channels[ch - 1].slots[slot].state != data else { return }
+        for c in targets(ch) { channels[c - 1].slots[slot].state = data }
+        save()
+    }
+
     func toggleBypass(channel ch: Int, slot: Int) {
         for c in targets(ch) { channels[c - 1].slots[slot].bypass.toggle() }
         save()
@@ -141,22 +153,22 @@ final class InputProcessing: ObservableObject {
 
     private struct File: Codable { var channels: [Channel]; var linked: [Int] }
 
-    private static var url: URL {
+    nonisolated static var defaultURL: URL {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Anti-Symphony/input-processing.json")
     }
 
     private func load() {
-        guard let d = try? Data(contentsOf: Self.url), let f = try? JSONDecoder().decode(File.self, from: d),
+        guard let d = try? Data(contentsOf: url), let f = try? JSONDecoder().decode(File.self, from: d),
               f.channels.count == 16 else { return }
         channels = f.channels
         linked = Set(f.linked)
     }
 
     private func save() {
-        try? FileManager.default.createDirectory(at: Self.url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         if let d = try? JSONEncoder().encode(File(channels: channels, linked: linked.sorted())) {
-            try? d.write(to: Self.url, options: .atomic)
+            try? d.write(to: url, options: .atomic)
         }
     }
 }
@@ -165,7 +177,6 @@ final class InputProcessing: ObservableObject {
 
 struct InputProcessingView: View {
     @EnvironmentObject var store: Store
-    @EnvironmentObject var meters: Meters
     @EnvironmentObject var proc: InputProcessing
     @EnvironmentObject var cal: Calibration
 
@@ -173,12 +184,19 @@ struct InputProcessingView: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top) {
                 Image(systemName: "info.circle").foregroundStyle(.secondary)
-                Text("Choose plugins for each input. Link a pair (odd = left, even = right) to use the stereo versions; settings carry over either way. The processing engine that runs these plugins is the next build step, so for now this page sets things up and saves them. Zero-latency monitoring stays on Bus A / Bus B.")
+                Text("Choose plugins for each input and open them with the slider button; their settings are saved with the slot. Link a pair (odd = left, even = right) to use the stereo versions; settings carry over either way. Audio doesn't pass through these plugins yet: the engine that runs them is the next build step. Zero-latency monitoring stays on Bus A / Bus B.")
                     .font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 Button("Rescan Plugins") { proc.refreshPlugins() }.controlSize(.small)
             }
             .padding([.horizontal, .top])
+            if let p = proc.problem {
+                HStack {
+                    Label(p, systemImage: "exclamationmark.triangle").foregroundStyle(.orange).font(.caption)
+                    Button("Dismiss") { proc.problem = nil }.buttonStyle(.borderless).font(.caption)
+                }
+                .padding(.horizontal).padding(.top, 6)
+            }
 
             ScrollView(.horizontal) {
                 HStack(alignment: .top, spacing: 8) {
@@ -226,8 +244,8 @@ struct InputProcessingView: View {
                 if stereo { Text("ST").font(.caption2).bold().foregroundStyle(Color.accentColor) }
             }
             HStack(spacing: 3) {
-                MeterBar(db: meters.input[ch - 1])
-                if stereo { MeterBar(db: meters.input[ch]) }
+                InputMeterBar(index: ch - 1)
+                if stereo { InputMeterBar(index: ch) }
             }
             if ch <= 8 { hardware(ch, stereo: stereo) }
             ForEach(0..<InputProcessing.slotsPerChannel, id: \.self) { i in
@@ -291,6 +309,14 @@ struct InputProcessingView: View {
             .background(RoundedRectangle(cornerRadius: 5).fill(s.plugin == nil ? Color.clear : Color.accentColor.opacity(0.15)))
             .overlay(RoundedRectangle(cornerRadius: 5).stroke(.quaternary))
             if s.plugin != nil {
+                Button {
+                    PluginWindows.shared.show(proc, channel: ch, slot: i,
+                                              title: proc.isLinked(ch) ? InputProcessing.pairName(ch % 2 == 1 ? ch : ch - 1) : InputProcessing.name(ch))
+                } label: {
+                    Image(systemName: "slider.horizontal.3").font(.caption2)
+                }
+                .buttonStyle(.borderless)
+                .help("Open the plugin window")
                 Button { proc.toggleBypass(channel: ch, slot: i) } label: {
                     Image(systemName: "power").font(.caption2)
                         .foregroundStyle(s.bypass ? Color.secondary : Color.green)
