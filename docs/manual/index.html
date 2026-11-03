@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anti-Symphony Manual</title>
+<meta name="description" content="Anti-Symphony: the Apogee Symphony I/O Mk1 on modern macOS, with Symphony Control. User manual.">
+<style>
+:root {
+  --night: #15171b; --panel: #1f2227; --raised: #2a2e35; --edge: #353a42;
+  --cyan: #5cc7ff; --red: #ff5a5a; --amber: #ffa53a; --green: #4ad97a;
+  --text: #eceef2; --dim: #a7adb8; --faint: #6f7682;
+  --sans: -apple-system, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { margin: 0; background: #0c0d10; color: var(--text); font: 13.2px/1.55 var(--sans); }
+img { max-width: 100%; display: block; }
+a { color: var(--cyan); text-decoration: none; }
+strong { color: #fff; font-weight: 650; }
+code, kbd { font: 600 0.9em ui-monospace, "SF Mono", Menlo, monospace; background: rgba(92,199,255,.10);
+  border: 1px solid rgba(92,199,255,.28); border-radius: 5px; padding: 1px 5px; color: #bfe8ff; }
+pre { font: 600 11.5px/1.5 ui-monospace, "SF Mono", Menlo, monospace; background: #0d0f12; color: #bfe8ff;
+  border: 1px solid var(--edge); border-left: 3px solid var(--cyan); border-radius: 8px; padding: 12px 12px;
+  margin: 10px 0 14px; white-space: pre; font-size: 10.4px; overflow: hidden; }
+
+.page { width: 8.5in; height: 11in; margin: 28px auto; padding: 0.65in 0.7in 0.85in; position: relative; overflow: hidden;
+  background: radial-gradient(120% 55% at 50% 0%, #23262d 0%, var(--night) 62%); border-radius: 6px;
+  box-shadow: 0 10px 40px rgba(0,0,0,.5); }
+.page::after { content: attr(data-footer); position: absolute; left: 0.7in; right: 0.7in; bottom: 0.38in;
+  font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--faint);
+  border-top: 1px solid var(--edge); padding-top: 8px; }
+.pageno { position: absolute; right: 0.7in; bottom: 0.38in; font-size: 9.5px; color: var(--faint); padding-top: 9px; }
+@page { size: letter; margin: 0; }
+@media print {
+  body { background: var(--night); }
+  .page { margin: 0; border-radius: 0; box-shadow: none; break-after: page; }
+  *, *::before, *::after { box-shadow: none !important; filter: none !important; }
+}
+@media screen and (max-width: 900px) {
+  .page { width: auto; height: auto; margin: 0; border-radius: 0; padding: 36px 16px 70px; }
+  .page::after, .pageno { left: 16px; right: 16px; }
+  .two { grid-template-columns: 1fr !important; }
+}
+
+.kicker { font: 800 10.5px var(--sans); letter-spacing: .22em; text-transform: uppercase; color: var(--cyan); margin: 0 0 6px; }
+h2 { font: 800 30px/1.08 var(--sans); margin: 0 0 8px; letter-spacing: -.02em; }
+h3 { font: 700 14.5px/1.3 var(--sans); margin: 16px 0 5px; color: #fff; }
+p { margin: 0 0 9px; }
+.lede { font-size: 14.5px; color: var(--dim); margin-bottom: 16px; }
+ul, ol { margin: 0 0 10px; padding-left: 20px; }
+li { margin: 0 0 4px; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; }
+.shot { border-radius: 10px; border: 1px solid var(--edge); overflow: hidden; background: #000; }
+.cap { font-size: 10.5px; color: var(--faint); margin: 6px 0 12px; }
+.note { background: var(--panel); border: 1px solid var(--edge); border-radius: 10px; padding: 11px 14px; margin: 10px 0 12px; }
+.note.warn { border-left: 3px solid var(--amber); }
+.note.info { border-left: 3px solid var(--cyan); }
+.note.good { border-left: 3px solid var(--green); }
+.note p:last-child, .note ul:last-child { margin-bottom: 0; }
+.tag { display: inline-block; font: 700 9.5px var(--sans); letter-spacing: .12em; text-transform: uppercase; padding: 2px 7px;
+  border-radius: 4px; background: var(--raised); color: var(--dim); border: 1px solid var(--edge); }
+.key { display: inline-block; font: 800 10px var(--sans); letter-spacing: .1em; padding: 1px 7px; border-radius: 4px;
+  border: 1px solid #000; background: linear-gradient(#3a3e45, #24272c); color: #e6e6e6; }
+.key.red { background: linear-gradient(#ff7272, #d93c3c); color: #fff; }
+.key.amber { background: linear-gradient(#ffb75c, #e08a1e); color: #fff; }
+table { width: 100%; border-collapse: collapse; margin: 6px 0 12px; font-size: 12.3px; }
+th { text-align: left; font: 700 10px var(--sans); letter-spacing: .12em; text-transform: uppercase; color: var(--faint);
+  padding: 5px 8px; border-bottom: 1px solid var(--edge); }
+td { padding: 6px 8px; border-bottom: 1px solid #262a30; vertical-align: top; }
+td:first-child { color: #fff; font-weight: 600; }
+table.help td:first-child { width: 34%; }
+
+/* Cover */
+.cover { display: flex; flex-direction: column; justify-content: space-between;
+  background: radial-gradient(90% 60% at 50% 30%, #262a31 0%, #111317 70%); }
+.cover h1 { font: 900 64px/0.95 var(--sans); letter-spacing: -.035em; margin: 0.6in 0 14px; }
+.cover h1 span { color: var(--cyan); }
+.cover .sub { font-size: 18px; color: var(--dim); max-width: 5.6in; }
+.cover .hero { margin: 0 auto; width: 3.1in; }
+.cover .meta { display: flex; justify-content: space-between; align-items: flex-end; color: var(--faint); font-size: 11px; }
+.flag { display: flex; flex-direction: column; align-items: center; gap: 4px; font-style: italic; }
+.flag svg { width: 46px; height: 23px; }
+</style>
+</head>
+<body>
+
+<!-- 1. Cover -->
+<section class="page cover" data-footer="">
+  <div>
+    <p class="kicker">Anti-Music · User manual · Version 0.3</p>
+    <h1>Anti-<span>Symphony</span></h1>
+    <p class="sub">Your Apogee Symphony I/O Mk1, working again on modern macOS, with <strong>Symphony Control</strong>: monitoring, headphone mixes, routing, calibration and input processing.</p>
+  </div>
+  <img class="hero" src="img/menubar.jpg" alt="The Symphony Control monitor panel in the menu bar">
+  <div class="meta">
+    <div>Free and open source · <a href="https://github.com/BigDumbRobot/Anti-Symphony">github.com/BigDumbRobot/Anti-Symphony</a><br>
+      Not made or endorsed by Apogee. Apogee and Symphony are Apogee Electronics' trademarks.</div>
+    <div class="flag">
+      <svg viewBox="0 0 46 23"><rect width="46" height="23" rx="2" fill="#2b2e34"/><rect width="11.5" height="23" fill="#4a4f58"/><rect x="34.5" width="11.5" height="23" fill="#4a4f58"/>
+        <path fill="#6a707a" d="M22.56 21.19 L22.78 16.96 L22.23 16.47 L18.02 17.22 L18.59 15.65 L18.49 15.29 L13.87 11.55 L14.91 11.06 L15.08 10.67 L14.16 7.87 L16.82 8.43 L17.18 8.24 L17.70 7.03 L19.78 9.26 L20.32 8.98 L19.32 3.82 L20.92 4.75 L21.37 4.61 L23.00 1.41 L24.63 4.61 L25.08 4.75 L26.68 3.82 L25.68 8.98 L26.22 9.26 L28.30 7.03 L28.82 8.24 L29.18 8.43 L31.84 7.87 L30.92 10.67 L31.09 11.06 L32.13 11.55 L27.51 15.29 L27.41 15.65 L27.98 17.22 L23.77 16.47 L23.22 16.96 L23.44 21.19Z"/></svg>
+      From Canada with love
+    </div>
+  </div>
+</section>
+
+<!-- 2. Install -->
+<section class="page" data-footer="Anti-Symphony · Install">
+  <p class="kicker">Getting started</p>
+  <h2>Install in one step</h2>
+  <p class="lede" style="margin-bottom:10px">Apogee's software no longer runs on macOS Tahoe, so the Symphony sits with a "!" on its front panel. Anti-Symphony tells the box the Mac is ready, makes it a normal audio device again, and replaces Maestro.</p>
+
+  <h3>What you need</h3>
+  <p>An Apogee Symphony I/O Mk1 on USB, a Mac with macOS 14 (Sonoma) or later (tested on macOS 26 Tahoe, Apple silicon), and an internet connection. No admin password, no kernel extension.</p>
+
+  <h3>Install</h3>
+  <ol>
+    <li>Open <strong>Terminal</strong> (Applications → Utilities → Terminal).</li>
+    <li>Paste this line and press <strong>Return</strong>:</li>
+  </ol>
+  <pre>curl -fsSL https://raw.githubusercontent.com/BigDumbRobot/Anti-Symphony/main/install.sh | bash</pre>
+  <ol start="3">
+    <li>If a window asks to install Apple's <strong>Command Line Tools</strong>, click <strong>Install</strong> and accept. They're free, about 1 GB, and the installer waits for them, then carries on by itself.</li>
+    <li>Wait a minute or two while it builds. When it says <strong>Anti-Symphony is installed</strong>, Symphony Control opens.</li>
+    <li>Power on the Symphony. The "!" on the front panel clears within a second or two.</li>
+  </ol>
+
+  <div class="note info">
+    <p><strong>Why does it build on my Mac?</strong> Building it yourself means macOS treats it as your own software, so there are no "unidentified developer" warnings and nothing to approve in System Settings.</p>
+  </div>
+
+  <h3>Prefer double-clicking?</h3>
+  <p>On the GitHub page, click the green <strong>Code</strong> button → <strong>Download ZIP</strong>. Unzip it and double-click <strong>Install Anti-Symphony.command</strong>. The first time, macOS may say it can't verify the file: right-click it, choose <strong>Open</strong>, then <strong>Open</strong> again.</p>
+
+  <h3>What gets installed</h3>
+  <table>
+    <tr><th>Part</th><th>What it does</th><th>Where</th></tr>
+    <tr><td>Symphony Control</td><td>The control app, plus the monitor panel in the menu bar.</td><td>~/Applications</td></tr>
+    <tr><td>symphonyd</td><td>Small background service: wakes the box, keeps settings, restores them if the box forgets. Starts at login.</td><td>~/Library/Application Support/Anti-Symphony</td></tr>
+  </table>
+
+  <h3>Update or remove</h3>
+  <p><strong>Update:</strong> run the same install line again. Your settings and profiles stay.</p>
+  <p><strong>Remove:</strong> run the line with <code>| bash -s -- --uninstall</code> at the end instead of <code>| bash</code>. Profiles and settings are kept unless you delete the Anti-Symphony folder in Application Support.</p>
+  <span class="pageno">2</span>
+</section>
+
+<!-- 3. Monitoring -->
+<section class="page" data-footer="Anti-Symphony · Monitoring">
+  <p class="kicker">Symphony Control</p>
+  <h2>Monitoring</h2>
+  <p class="lede">A monitor controller on screen: one big knob, big DIM and MUTE, speaker sets and both headphone outputs. The same panel lives in the menu bar, so you rarely need the full window.</p>
+  <div class="two">
+    <div>
+      <img class="shot" src="img/menubar.jpg" alt="Monitor panel from the menu bar">
+      <p class="cap">The menu bar panel: click the speaker icon in the menu bar.</p>
+    </div>
+    <div>
+      <h3>Main output</h3>
+      <ul>
+        <li><strong>Big knob</strong>: main monitor level. Drag up or down. The ring turns amber while DIM is on.</li>
+        <li><span class="key amber">DIM</span> drops the level for talkback or a phone call; <span class="key red">MUTE</span> silences the speakers.</li>
+        <li><strong>Speakers A–D</strong> pick the speaker set; <span class="key">MONO</span> folds to mono.</li>
+        <li>LED meters on the left show the level feeding Analog Out 1–2.</li>
+      </ul>
+      <h3>Phones 1 and 2</h3>
+      <ul>
+        <li>Small knob: headphone level. DIM and MUTE per headphone.</li>
+        <li><span class="key">BUS A</span> / <span class="key">BUS B</span>: send one of the two headphone mixes (see Headphone Mixes).</li>
+        <li>The menu under the buttons gives <strong>any other feed</strong>: mirror any output pair (it follows that output if you reroute it), or take any DAW or input pair directly.</li>
+      </ul>
+      <h3>Also in the menu bar panel</h3>
+      <ul>
+        <li><strong>Profile</strong>: load a saved setup.</li>
+        <li><strong>Mac volume keys</strong>: the keyboard's volume and mute keys control the main level while the Symphony is the Mac's sound output.</li>
+        <li><strong>Open at login</strong>.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="note info"><p><strong>Can't see the speaker icon?</strong> On a MacBook with a camera notch, a full menu bar hides icons behind the notch. Hold <kbd>⌘</kbd> and drag other icons out of the menu bar, or quit some menu bar apps.</p></div>
+  <span class="pageno">3</span>
+</section>
+
+<!-- 4. Headphone Mixes -->
+<section class="page" data-footer="Anti-Symphony · Headphone Mixes">
+  <p class="kicker">Symphony Control</p>
+  <h2>Headphone Mixes</h2>
+  <p class="lede">Two separate stereo cue mixes, <strong>Bus A</strong> and <strong>Bus B</strong>, mixed inside the Symphony. Inputs reach the headphones with <strong>zero latency</strong>, because they never go through the Mac.</p>
+  <img class="shot" src="img/mixes.jpg" alt="Headphone Mixes page">
+  <p class="cap">Bus A selected. Each strip: source, pan, fader, meter, solo and mute.</p>
+  <div class="two">
+    <div>
+      <h3>Build a cue mix</h3>
+      <ol>
+        <li>Click <strong>Bus A</strong> or <strong>Bus B</strong> at the top.</li>
+        <li>On each strip, pick the <strong>source</strong> (an input, or a DAW channel).</li>
+        <li>Set <strong>fader</strong> and <strong>pan</strong>. Pan is centred at <strong>C</strong> and shows L/R amounts. Double-click a pan or fader to reset it.</li>
+        <li>Use <strong>S</strong> (solo) and <strong>M</strong> (mute) per strip; the last strip is the bus's master level.</li>
+        <li>On the Monitoring page, set each headphone to <span class="key">BUS A</span> or <span class="key">BUS B</span>.</li>
+      </ol>
+    </div>
+    <div>
+      <h3>DAW Rough Mix</h3>
+      <p>Artists usually want the track too. <strong>DAW Rough Mix</strong> (top right) puts a DAW output pair on faders 15 and 16, panned left and right. Send your session's rough mix to that pair in the DAW, and the artist hears it alongside their zero-latency inputs.</p>
+      <h3>Meters</h3>
+      <p>Input meters are measured by the box. The bus output meter is worked out from the mixer settings and input levels. DAW channels aren't metered yet.</p>
+    </div>
+  </div>
+  <span class="pageno">4</span>
+</section>
+
+<!-- 5. Input Processing -->
+<section class="page" data-footer="Anti-Symphony · Input Processing">
+  <p class="kicker">Symphony Control</p>
+  <h2>Input Processing</h2>
+  <p class="lede">Plugin inserts for every input: four slots per channel, for the Audio Unit plugins installed on your Mac.</p>
+  <img class="shot" src="img/processing.jpg" alt="Input Processing page">
+  <p class="cap">Analog 1–2 linked as a stereo pair (ST). Each strip shows the input meter, the input's reference level and Soft Limit, then four inserts.</p>
+  <div class="two">
+    <div>
+      <h3>Add a plugin</h3>
+      <ol>
+        <li>Click an <strong>Insert</strong> slot and choose a maker, then a plugin.</li>
+        <li>Click the <strong>slider</strong> button next to it to open the plugin's own window. Its settings are saved with the slot.</li>
+        <li>The <strong>power</strong> button bypasses it (green = active). Choose <strong>None</strong> to remove it.</li>
+      </ol>
+      <h3>Stereo pairs</h3>
+      <p>Click <strong>Link</strong> above two channels to make a stereo pair: odd = left, even = right. The pair switches to each plugin's <strong>stereo version</strong> (for example "CLA-76 Mono" becomes "CLA-76 Stereo", "(m)" becomes "(s)") and keeps its settings. Unlinking goes back to the mono versions, still with the same settings.</p>
+    </div>
+    <div>
+      <img class="shot" src="img/plugin.jpg" alt="Pink Spider-DMP plugin window">
+      <p class="cap">A plugin window opened from a slot (Pink Spider-DMP).</p>
+      <div class="note warn">
+        <p><strong>Current version: setup only.</strong> Plugins chosen here are saved with their settings, but audio doesn't pass through them yet. The engine that runs them is in development.</p>
+        <p>The Symphony has no DSP chip, so plugins run on the Mac. Recordings can be lined up with zero added delay. Live monitoring through plugins always has a small delay (a few milliseconds), so keep the artist's cue on Bus A / Bus B for true zero latency.</p>
+      </div>
+    </div>
+  </div>
+  <span class="pageno">5</span>
+</section>
+
+<!-- 6. I/O and Routing -->
+<section class="page" data-footer="Anti-Symphony · Inputs, outputs and routing">
+  <p class="kicker">Symphony Control</p>
+  <h2>Inputs, Outputs and Routing</h2>
+  <div class="two">
+    <div>
+      <img class="shot" src="img/io.jpg" alt="Inputs and Outputs page">
+      <p class="cap">Inputs &amp; Outputs.</p>
+      <h3>Inputs &amp; Outputs</h3>
+      <ul>
+        <li><strong>Input level / Output level</strong>: +4 dBu (pro) or −10 dBV (consumer) per analog channel. They measure 11.7 dB apart.</li>
+        <li><strong>Soft Limit</strong>: the Symphony's analog soft clipper on each input.</li>
+        <li><strong>Optical</strong>: ADAT or S/PDIF.</li>
+        <li>Meters for every input and output. An output shows a level when it carries an input or a headphone bus.</li>
+      </ul>
+    </div>
+    <div>
+      <img class="shot" src="img/routing.jpg" alt="Routing page">
+      <p class="cap">Routing.</p>
+      <h3>Routing</h3>
+      <ul>
+        <li><strong>Outputs</strong>: choose what each analog and optical output plays: a DAW channel, an input (direct, zero latency), or Bus A / Bus B.</li>
+        <li><strong>Recording channels</strong>: choose what each of the 16 channels the Mac records carries. Usually Analog In 1–8 and Optical In 1–8; a bus can be recorded too.</li>
+      </ul>
+      <div class="note info"><p>symphonyd saves everything and puts it back if the box forgets its settings (it does when it's power-cycled).</p></div>
+    </div>
+  </div>
+  <span class="pageno">6</span>
+</section>
+
+<!-- 7. Settings -->
+<section class="page" data-footer="Anti-Symphony · Settings and calibration">
+  <p class="kicker">Symphony Control</p>
+  <h2>Settings and calibration</h2>
+  <div class="two">
+    <div>
+      <img class="shot" src="img/settings.jpg" alt="Settings page">
+      <p class="cap">Clock at the top, calibration below.</p>
+      <h3>Clock</h3>
+      <p><strong>Sample rate</strong>: 44.1, 48, 88.2 or 96 kHz (the same as Audio MIDI Setup). The clock <strong>source</strong> is chosen on the Symphony itself: hold one of its rotary encoders.</p>
+      <h3>Calibration level</h3>
+      <p>Choose what +4 dBu (1.228 V RMS) reads in your DAW: <strong>−18 dBFS</strong> (EBU), <strong>−20</strong> (SMPTE), or −14, −16, −22. Changing it later recalculates every trim; nothing needs measuring again.</p>
+    </div>
+    <div>
+      <h3>1. Calibrate the inputs</h3>
+      <ol>
+        <li>Feed a <strong>1 kHz tone at +4 dBu</strong> (1.228 V RMS) into the analog inputs, one at a time or all at once.</li>
+        <li>Click <strong>Measure Inputs</strong>. Inputs with a steady tone get a trim; the others are left alone.</li>
+      </ol>
+      <h3>2. Calibrate the outputs (automatic)</h3>
+      <ol>
+        <li>Patch each output you want to calibrate into an analog input you've already calibrated (default: the same number). Choose the input under <strong>Cabled to</strong>.</li>
+        <li>Tick those outputs and click <strong>Calibrate Outputs</strong>.</li>
+      </ol>
+      <p>The app does the rest: it plays the tone, routes it to the output, measures it on the input, and puts your routing back. It uses a DAW channel nothing else is playing, so the tone only reaches the output being measured.</p>
+      <div class="note warn"><p>Outputs 1–2 usually feed your speakers, so they start unticked. Turn the speakers down before calibrating them.</p></div>
+      <div class="note info"><p>The Symphony Mk1 has no fine trim of its own. Trims are applied by Input Processing. If you change a channel's +4 dBu / −10 dBV setting, measure it again: a warning sign shows which ones.</p></div>
+      <p>Optical inputs and outputs are digital and need no calibration.</p>
+    </div>
+  </div>
+  <span class="pageno">7</span>
+</section>
+
+<!-- 8. Profiles and help -->
+<section class="page" data-footer="Anti-Symphony · Profiles and troubleshooting">
+  <p class="kicker">Symphony Control</p>
+  <h2>Profiles, controllers and help</h2>
+  <div class="two">
+    <div>
+      <img class="shot" src="img/profiles.jpg" alt="Profiles page">
+      <p class="cap">Profiles.</p>
+    </div>
+    <div>
+      <h3 style="margin-top:0">Profiles</h3>
+      <p>A profile stores every setting: monitoring, headphone feeds, I/O levels, routing and both headphone mixes. Type a name and click <strong>Save Current Setup</strong>; <strong>Load</strong>, <strong>Overwrite</strong> or delete them later. Quick-load from the menu bar panel.</p>
+      <h3>Stream Deck and other controllers</h3>
+      <p>Every control is available over OSC, and there's a Bitfocus Companion module with ready-made buttons. See <code>docs/osc.md</code> and <code>companion/</code> on GitHub.</p>
+    </div>
+  </div>
+  <h3>Troubleshooting</h3>
+  <table class="help">
+    <tr><th>You see</th><th>Try</th></tr>
+    <tr><td>"!" stays on the box</td><td>Check the USB cable and power. The app should say <em>Connected</em> at the bottom left. If it says <em>symphonyd offline</em>, run the install line again.</td></tr>
+    <tr><td>No sound in the DAW</td><td>Choose the Symphony as the DAW's audio device. On the Routing page, outputs should play DAW channels.</td></tr>
+    <tr><td>No speaker icon in the menu bar</td><td>It's probably hidden behind the camera notch (see Monitoring).</td></tr>
+    <tr><td>Settings changed after a power cycle</td><td>Wait a few seconds: symphonyd puts them back.</td></tr>
+    <tr><td>The install stopped with an error</td><td>Run it again. The lines just above the error say which step failed. Check the Mac runs macOS 14 or later.</td></tr>
+  </table>
+  <h3>For the curious</h3>
+  <p>The background service logs to <code>~/Library/Logs/symphonyd.log</code>. Command-line control: <code>symctl dump</code> (in <code>~/Library/Application Support/Anti-Symphony</code>). How the box's protocol was worked out, and all the code, are on GitHub.</p>
+  <div class="note good"><p>Anti-Symphony is free and open source, made by Anti-Music in Canada. Questions and bug reports: <a href="https://github.com/BigDumbRobot/Anti-Symphony/issues">github.com/BigDumbRobot/Anti-Symphony/issues</a>.</p></div>
+  <span class="pageno">8</span>
+</section>
+
+</body>
+</html>

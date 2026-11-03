@@ -79,6 +79,8 @@ osascript -e 'quit app "Symphony Control"' >/dev/null 2>&1 || true
 pkill -f "Symphony Control.app/Contents/MacOS/SymphonyControl" 2>/dev/null || true
 sleep 1
 symphonyd/install.sh
+MANUAL="$HOME/Library/Application Support/Anti-Symphony/Anti-Symphony Manual.pdf"
+[ -f docs/Anti-Symphony-Manual.pdf ] && cp docs/Anti-Symphony-Manual.pdf "$MANUAL"
 open "$HOME/Applications/Symphony Control.app"
 
 cat <<EOF
@@ -87,5 +89,6 @@ $(printf '\033[1;32m')Anti-Symphony $(cat VERSION) is installed.$(printf '\033[0
   • Symphony Control is open, and in ~/Applications. It also lives in the menu bar (speaker icon).
   • symphonyd runs in the background and starts at login. Log: ~/Library/Logs/symphonyd.log
   • Plug in and power on the Symphony: the "!" on its front panel clears within a second or two.
+  • The manual: Help → Anti-Symphony Manual in the app (also docs/Anti-Symphony-Manual.pdf on GitHub).
   • Update later by running the same command again.
 EOF

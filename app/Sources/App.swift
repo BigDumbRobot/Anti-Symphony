@@ -19,10 +19,29 @@ struct SymphonyControlApp: App {
                 .environmentObject(calibration).environmentObject(processing)
         }
         .defaultSize(width: 1000, height: 720)
+        .commands {
+            CommandGroup(replacing: .help) {
+                Button("Anti-Symphony Manual") { openManual() }
+                Button("Anti-Symphony on GitHub") {
+                    NSWorkspace.shared.open(URL(string: "https://github.com/BigDumbRobot/Anti-Symphony")!)
+                }
+            }
+        }
 
         MenuBarExtra("Symphony", systemImage: "hifispeaker.fill") {
             MenuBarView().environmentObject(store).environmentObject(store.meters)
         }
         .menuBarExtraStyle(.window)
+    }
+}
+
+/// The PDF manual the installer copies next to symphonyd, or the copy on GitHub.
+func openManual() {
+    let local = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        .appendingPathComponent("Anti-Symphony/Anti-Symphony Manual.pdf")
+    if FileManager.default.fileExists(atPath: local.path) {
+        NSWorkspace.shared.open(local)
+    } else {
+        NSWorkspace.shared.open(URL(string: "https://github.com/BigDumbRobot/Anti-Symphony/blob/main/docs/Anti-Symphony-Manual.pdf")!)
     }
 }

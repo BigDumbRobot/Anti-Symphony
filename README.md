@@ -16,6 +16,8 @@ On Tahoe the Mac sees the Symphony fine, and Apple's built-in USB audio driver o
 
 ## Install
 
+**Manual:** [Anti-Symphony Manual (PDF)](docs/Anti-Symphony-Manual.pdf): install, every page of the app, calibration and troubleshooting.
+
 Open **Terminal** (in Applications → Utilities), paste this line and press Return:
 
 ```sh
@@ -82,6 +84,7 @@ Known limits:
 | `companion/` | Custom Bitfocus Companion module with native actions and ready-made presets for Symphony controls |
 | `tests/` | Hardware test suite and the `symtest` audio measurement tool |
 | `avbbridge/` | Optional: puts the Symphony's channels on AVB through the Mac (parked) |
+| `docs/Anti-Symphony-Manual.pdf` | User manual; source in `docs/manual/` (print `index.html` to PDF with Chrome) |
 | `docs/osc.md` | OSC addresses, for Companion and other controllers |
 | `docs/input-processor.md` | Design: UAD-style input processor (Pink Spider-DMP) for any interface, Symphony first |
 | `lib/symusb.*` | Shared USB access with the command allowlist |
