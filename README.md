@@ -36,12 +36,14 @@ Other targets: `make` (build only, warnings are errors), `make test` (hardware t
 - Profiles: save and recall complete setups by name.
 
 **Symphony Control** (app, plus a menu-bar icon)
-- Monitoring: main out level, mute, dim, mono, speaker set; both headphones' level, mute, dim, mono and feed. Each headphone can mirror any output pair (and follows it if that output is rerouted) or take its own feed: any DAW pair, input pair or mixer.
+- Monitoring: a monitor-controller panel (big level knob, DIM, MUTE, speaker sets A–D, mono, both headphones with level, Bus A / Bus B, any other feed, dim and mute), also in the menu bar. Each headphone can take Bus A or Bus B, mirror any output pair (and follow it if that output is rerouted), or take any DAW or input pair.
 - Inputs & Outputs: input meters, reference level per analog channel (+4 dBu / −10 dBV), Soft Limit, optical ADAT / S/PDIF.
 - Input meters also on mixer strips and routing rows fed by an input.
 - Routing: a source for each output and each channel the Mac records.
-- Mixer: both monitor mixers with source, fader, pan, solo and mute per input, plus return and master.
-- Clock: sample rate (44.1 / 48 / 88.2 / 96 kHz). The clock source is chosen on the box (hold a rotary encoder).
+- Headphone Mixes: Bus A and Bus B, two zero-latency stereo headphone mixes (the box's two hardware mixers) with source, fader, centre-zero pan, solo, mute and meter per input, plus return and master. One step puts a DAW rough mix on faders 15–16.
+- Input Processing: plugin inserts per input; odd/even pairs link to stereo and switch to the plugins' stereo versions, keeping their settings. Setup only for now: the engine that runs the plugins is designed in [docs/input-processor.md](docs/input-processor.md).
+- Settings: sample rate (44.1 / 48 / 88.2 / 96 kHz; the clock source is chosen on the box), and calibration: pick −14 / −16 / −18 / −20 / −22 dBFS for +4 dBu, measure the analog inputs from a +4 dBu 1 kHz tone, then the app measures the analog outputs itself through loopback cables (plays the tone, routes it, reads it back, restores the routing).
+- Meters next to every input and output: inputs measured, outputs from what feeds them (Bus A / B estimated from the mixer settings; DAW playback not metered yet).
 - Profiles: save, load, overwrite, delete; quick load from the menu bar.
 - Mac volume keys control the main out level while the Symphony is the Mac's sound output, with an on-screen level indicator. (macOS's own volume slider stays greyed out: the box has no USB volume control.)
 - Open at login.

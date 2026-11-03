@@ -1,15 +1,17 @@
 import SwiftUI
 
 enum Section: String, CaseIterable, Identifiable {
-    case monitoring = "Monitoring", inputs = "Inputs & Outputs", routing = "Routing", mixer = "Mixer", clock = "Clock", profiles = "Profiles"
+    case monitoring = "Monitoring", inputs = "Inputs & Outputs", routing = "Routing"
+    case processing = "Input Processing", mixes = "Headphone Mixes", settings = "Settings", profiles = "Profiles"
     var id: String { rawValue }
     var icon: String {
         switch self {
         case .monitoring: return "speaker.wave.2"
         case .inputs: return "cable.connector"
         case .routing: return "arrow.triangle.branch"
-        case .mixer: return "slider.vertical.3"
-        case .clock: return "metronome"
+        case .processing: return "waveform.badge.plus"
+        case .mixes: return "headphones"
+        case .settings: return "gearshape"
         case .profiles: return "square.stack"
         }
     }
@@ -39,14 +41,23 @@ struct ContentView: View {
                     case .monitoring: MonitoringView()
                     case .inputs: IOView()
                     case .routing: RoutingView()
-                    case .mixer: MixerView()
-                    case .clock: ClockView()
+                    case .processing: InputProcessingView()
+                    case .mixes: HeadphoneMixView()
+                    case .settings: SettingsView()
                     case .profiles: ProfilesView()
                     }
                 }
             }
             .frame(minWidth: 560, minHeight: 420)
             .navigationTitle((section ?? .monitoring).rawValue)
+            .toolbar {
+                if #available(macOS 26, *) {
+                    ToolbarItem(placement: .primaryAction) { CanadaBadge() }
+                        .sharedBackgroundVisibility(.hidden)
+                } else {
+                    ToolbarItem(placement: .primaryAction) { CanadaBadge() }
+                }
+            }
         }
         .overlay(alignment: .bottom) { ErrorBanner() }
         .overlay(alignment: .top) {
@@ -106,32 +117,27 @@ struct ErrorBanner: View {
 struct MonitoringView: View {
     @EnvironmentObject var store: Store
 
+    @EnvironmentObject var meters: Meters
+
     var body: some View {
         Form {
-            SwiftUI.Section("Main out") {
-                LevelRow(title: "Level", value: store.level("/symphony/monitor/main/level"))
-                HStack {
-                    KeyToggle(title: "Mute", isOn: store.flag("/symphony/monitor/main/mute"), tint: .red)
-                    KeyToggle(title: "Dim", isOn: store.flag("/symphony/monitor/main/dim"), tint: .orange)
-                    KeyToggle(title: "Mono", isOn: store.flag("/symphony/monitor/main/mono"))
-                    Spacer()
-                    Stepper("Speaker set \(Int(store.value("/symphony/monitor/speakerset") ?? 0))",
-                            value: store.number("/symphony/monitor/speakerset"), in: 0...3)
-                }
+            SwiftUI.Section {
+                MonitorController()
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 6)
             }
             ForEach(1...2, id: \.self) { h in
                 SwiftUI.Section("Headphones \(h)") {
-                    LevelRow(title: "Level", value: store.level("/symphony/monitor/hp/\(h)/level"))
                     HStack {
-                        KeyToggle(title: "Mute", isOn: store.flag("/symphony/monitor/hp/\(h)/mute"), tint: .red)
-                        KeyToggle(title: "Dim", isOn: store.flag("/symphony/monitor/hp/\(h)/dim"), tint: .orange)
-                        KeyToggle(title: "Mono", isOn: store.flag("/symphony/monitor/hp/\(h)/mono"))
+                        headphoneSource(h)
+                        LEDPair(left: Levels.destination(Names.headphoneFeed(h), store: store, meters: meters),
+                                right: Levels.destination(Names.headphoneFeed(h) + 1, store: store, meters: meters))
                     }
-                    headphoneSource(h)
+                    Toggle("Mono", isOn: store.flag("/symphony/monitor/hp/\(h)/mono"))
                 }
             }
             SwiftUI.Section {
-                Text("Mirroring follows that output: if you reroute the output, the headphones follow. An own feed is independent of the outputs.")
+                Text("Bus A and Bus B are the two headphone mixes (Headphone Mixes page). Mirroring follows that output: if you reroute the output, the headphones follow. An own feed is independent of the outputs.")
                     .font(.caption).foregroundStyle(.secondary)
                 Button("Identify (blink front panel)") {
                     store.send("/symphony/identify", [.int(1)])
@@ -166,11 +172,17 @@ extension MonitoringView {
                 }
             })
         return Picker("Feed", selection: selection) {
+            SwiftUI.Section("Headphone mix") {
+                Text("Bus A").tag("d\(Names.busA)")
+                Text("Bus B").tag("d\(Names.busB)")
+            }
             SwiftUI.Section("Mirror an output") {
                 ForEach(Names.outputPairs) { Text("Mirror \($0.name)").tag("m\($0.id)") }
             }
             SwiftUI.Section("Own feed") {
-                ForEach(Names.sourcePairs) { Text($0.name).tag("d\($0.id)") }
+                ForEach(Names.sourcePairs.filter { $0.id != Names.busA && $0.id != Names.busB }) {
+                    Text($0.name).tag("d\($0.id)")
+                }
             }
             if selection.wrappedValue == "custom" {
                 Text("\(Names.source(Int(store.value(left) ?? -1))) / \(Names.source(Int(store.value(right) ?? -1)))").tag("custom")
@@ -195,6 +207,7 @@ struct IOView: View {
                         Text("Input level").foregroundStyle(.secondary)
                         Text("Soft Limit").foregroundStyle(.secondary)
                         Text("Output level").foregroundStyle(.secondary)
+                        Text("Output").foregroundStyle(.secondary)
                     }
                     ForEach(1...8, id: \.self) { c in
                         GridRow {
@@ -203,13 +216,14 @@ struct IOView: View {
                             refPicker("/symphony/io/analog/in/\(c)/ref", Names.inputRefLevels)
                             Toggle("", isOn: store.flag("/symphony/io/analog/in/\(c)/softlimit")).labelsHidden()
                             refPicker("/symphony/io/analog/out/\(c)/ref", Names.outputRefLevels)
+                            OutputMeter(dest: 0x20 + c - 1).frame(width: 90)
                         }
                     }
                 }
             } header: {
                 Text("Analog (8x8 Analog-Optical)")
             } footer: {
-                Text("Levels measured with a loopback cable: +4 dBu and −10 dBV are 11.7 dB apart on this unit.")
+                Text("Levels measured with a loopback cable: +4 dBu and −10 dBV are 11.7 dB apart on this unit. The box only sends input meters: an output shows a level when it carries an input or a headphone bus (estimated), not yet when it plays from the DAW.")
                     .font(.caption).foregroundStyle(.secondary)
             }
             SwiftUI.Section("Optical") {
@@ -224,9 +238,15 @@ struct IOView: View {
                         GridRow {
                             ForEach(1...4, id: \.self) { k in
                                 let c = row * 4 + k
-                                HStack(spacing: 6) {
-                                    Text("In \(c)").font(.caption).foregroundStyle(.secondary).frame(width: 34, alignment: .leading)
-                                    MeterBar(db: meters.input[7 + c]).frame(width: 70)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack(spacing: 6) {
+                                        Text("In \(c)").font(.caption).foregroundStyle(.secondary).frame(width: 40, alignment: .leading)
+                                        MeterBar(db: meters.input[7 + c]).frame(width: 70)
+                                    }
+                                    HStack(spacing: 6) {
+                                        Text("Out \(c)").font(.caption).foregroundStyle(.secondary).frame(width: 40, alignment: .leading)
+                                        OutputMeter(dest: 0x28 + c - 1).frame(width: 70)
+                                    }
                                 }
                             }
                         }
@@ -280,28 +300,65 @@ struct RoutingView: View {
                     Text(Names.source(current)).tag(current)
                 }
             }
-            MeterBar(db: meters.level(forSource: current) ?? -120)
-                .frame(width: 60)
-                .opacity(meters.level(forSource: current) == nil ? 0.25 : 1)
+            OutputMeter(dest: dest.id).frame(width: 60)
         }
     }
 }
 
-// MARK: - Mixer
+// MARK: - Headphone mixes
 
-struct MixerView: View {
+/// Output meter row: level of whatever feeds the destination; faint when it isn't measured.
+struct OutputMeter: View {
     @EnvironmentObject var store: Store
-    @State private var mixer = 1
+    @EnvironmentObject var meters: Meters
+    let dest: Int
+    var body: some View {
+        let db = Levels.destination(dest, store: store, meters: meters)
+        MeterBar(db: db ?? Levels.silent).opacity(db == nil ? 0.25 : 1)
+            .help(db == nil ? "Not measured (the box doesn't send output meters; DAW playback isn't metered yet)" : "")
+    }
+}
+
+/// Two small LED meters side by side.
+struct LEDPair: View {
+    let left: Double?, right: Double?
+    var height: CGFloat = 28
+    var body: some View {
+        HStack(spacing: 2) { LEDMeter(db: left, segments: 10); LEDMeter(db: right, segments: 10) }
+            .frame(height: height)
+    }
+}
+
+/// Bus A and Bus B: the two zero-latency headphone mixes (the box's hardware mixers 1 and 2).
+struct HeadphoneMixView: View {
+    @EnvironmentObject var store: Store
+    @EnvironmentObject var meters: Meters
+    @AppStorage("mixesBus") private var mixer = 1
 
     var body: some View {
-        VStack(alignment: .leading) {
-            Picker("Mixer", selection: $mixer) {
-                Text("Mixer 1").tag(1)
-                Text("Mixer 2").tag(2)
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 10) {
+                ForEach(1...2, id: \.self) { m in
+                    Button { mixer = m } label: {
+                        Text(Names.busName(m)).font(.headline).frame(width: 110, height: 30)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(mixer == m ? .accentColor : nil)
+                    .background(mixer == m ? Color.accentColor.opacity(0.25) : .clear, in: RoundedRectangle(cornerRadius: 7))
+                }
+                Spacer()
+                Menu("DAW Rough Mix") {
+                    ForEach(0..<8, id: \.self) { p in
+                        Button("DAW \(2 * p + 1)–\(2 * p + 2) on faders 15–16") { roughMix(dawPair: p) }
+                    }
+                }
+                .fixedSize()
+                .help("Puts a DAW output pair on input faders 15 and 16, panned left and right, so your session's rough mix plays in this bus with zero-latency inputs.")
             }
-            .pickerStyle(.segmented)
-            .frame(maxWidth: 240)
             .padding([.horizontal, .top])
+            Text("Each headphone output picks Bus A or Bus B on the Monitoring page. Inputs are mixed in the box, with no latency.")
+                .font(.caption).foregroundStyle(.secondary)
+                .padding(.horizontal).padding(.top, 6)
 
             ScrollView(.horizontal) {
                 HStack(alignment: .top, spacing: 6) {
@@ -311,12 +368,24 @@ struct MixerView: View {
                     }
                     Divider()
                     Strip(title: "Return", base: "/symphony/mixer/\(mixer)/return")
-                    Strip(title: "Master", base: "/symphony/mixer/\(mixer)/master", soloMute: false)
+                    Strip(title: Names.busName(mixer), base: "/symphony/mixer/\(mixer)/master", soloMute: false,
+                          busMeters: (Levels.bus(mixer, right: false, store: store, meters: meters),
+                                      Levels.bus(mixer, right: true, store: store, meters: meters)))
                 }
                 .padding()
             }
         }
         .wantsMeters()
+    }
+
+    private func roughMix(dawPair p: Int) {
+        let first = mixer == 1 ? 0x40 : 0x60
+        for (k, input) in [15, 16].enumerated() {
+            store.set("/symphony/route/\(first + input - 1)", Double(0xC0 + 2 * p + k), float: false)
+            store.set("/symphony/mixer/\(mixer)/in/\(input)/pan", k == 0 ? -1 : 1, float: true)
+            store.set("/symphony/mixer/\(mixer)/in/\(input)/fader", 0, float: true)
+            store.set("/symphony/mixer/\(mixer)/in/\(input)/mute", 0, float: false)
+        }
     }
 }
 
@@ -327,15 +396,17 @@ struct Strip: View {
     let base: String
     var route: String? = nil
     var soloMute = true
+    var busMeters: (Double?, Double?)? = nil
 
     var body: some View {
         let fader = store.level("\(base)/fader", default: 0)
+        let src = route.map { Int(store.value($0) ?? -1) }
         VStack(spacing: 8) {
             Text(title).font(.caption).bold()
             if let route {
-                Menu(Names.source(Int(store.value(route) ?? -1))) {
-                    ForEach(Names.sources) { src in
-                        Button(src.name) { store.set(route, Double(src.id), float: false) }
+                Menu(Names.source(src ?? -1)) {
+                    ForEach(Names.sources) { s in
+                        Button(s.name) { store.set(route, Double(s.id), float: false) }
                     }
                 }
                 .menuStyle(.borderlessButton)
@@ -343,18 +414,22 @@ struct Strip: View {
                 .frame(width: 60)
                 .help("Source for this mixer input")
             }
-            Slider(value: store.number("\(base)/pan"), in: -1...1)
-                .controlSize(.mini)
-                .frame(width: 52)
-                .help("Pan")
+            if busMeters == nil {
+                PanControl(value: store.number("\(base)/pan"))
+            } else {
+                Text("Output").font(.caption2).foregroundStyle(.secondary).frame(height: 26)
+            }
             HStack(spacing: 4) {
                 VerticalFader(value: fader)
                     .frame(width: 44, height: 220)
-                if let route, let db = meters.level(forSource: Int(store.value(route) ?? -1)) {
-                    VerticalMeter(db: db).frame(height: 220)
+                if let busMeters {
+                    LEDMeter(db: busMeters.0, segments: 40).frame(height: 220)
+                    LEDMeter(db: busMeters.1, segments: 40).frame(height: 220)
+                } else if let src {
+                    LEDMeter(db: Levels.source(src, store: store, meters: meters), segments: 40).frame(height: 220)
                 }
             }
-            .frame(width: 56)
+            .frame(minWidth: 56)
             Text(dbText(fader.wrappedValue, floor: -48)).font(.caption2).monospacedDigit()
             if soloMute {
                 HStack(spacing: 2) {
@@ -366,32 +441,6 @@ struct Strip: View {
         }
         .padding(6)
         .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 8))
-    }
-}
-
-// MARK: - Clock
-
-struct ClockView: View {
-    @EnvironmentObject var store: Store
-
-    var body: some View {
-        Form {
-            SwiftUI.Section("Sample rate") {
-                Picker("Rate", selection: Binding(
-                    get: { Int(store.value("/symphony/clock/rate") ?? 0) },
-                    set: { store.set("/symphony/clock/rate", Double($0), float: true) })) {
-                    ForEach(Names.rates, id: \.self) { Text(String(format: "%.1f kHz", Double($0) / 1000)).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                Text("Set through macOS, so it's the same as changing it in Audio MIDI Setup.")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-            SwiftUI.Section("Clock source") {
-                Text("The clock source (internal, word clock, digital input) is chosen on the Symphony itself: hold one of the rotary encoders.")
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .formStyle(.grouped)
     }
 }
 
@@ -465,15 +514,10 @@ struct MenuBarView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            StatusBadge()
-            if store.boxConnected {
-                LevelRow(title: "Main", value: store.level("/symphony/monitor/main/level"))
-                HStack {
-                    KeyToggle(title: "Mute", isOn: store.flag("/symphony/monitor/main/mute"), tint: .red)
-                    KeyToggle(title: "Dim", isOn: store.flag("/symphony/monitor/main/dim"), tint: .orange)
-                }
-                LevelRow(title: "Headphones 1", value: store.level("/symphony/monitor/hp/1/level"))
-                LevelRow(title: "Headphones 2", value: store.level("/symphony/monitor/hp/2/level"))
+            if store.daemonReachable && store.boxConnected {
+                MonitorController()
+            } else {
+                StatusBadge()
             }
             if store.boxConnected && !store.profiles.isEmpty {
                 Picker("Profile", selection: Binding(get: { store.lastProfile ?? "" },
@@ -496,7 +540,7 @@ struct MenuBarView: View {
                 Button("Quit") { NSApp.terminate(nil) }
             }
         }
-        .padding(14)
-        .frame(width: 360)
+        .padding(12)
+        .frame(width: 354)
     }
 }

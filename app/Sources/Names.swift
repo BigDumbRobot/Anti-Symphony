@@ -6,13 +6,18 @@ enum Names {
 
     static let none = 0xEC
 
+    /// Headphone mix buses: the box's two hardware mixers (mixer 1 = Bus A, mixer 2 = Bus B).
+    /// Source IDs of each bus's left output (right is +1).
+    static let busA = 0x40, busB = 0x60
+    static func busName(_ mixer: Int) -> String { mixer == 1 ? "Bus A" : "Bus B" }
+
     static let sources: [Item] = {
         var list = [Item(id: none, name: "None")]
         list += (0..<8).map { (i: Int) -> Item in Item(id: 0x20 + i, name: "Analog In \(i + 1)") }
         list += (0..<8).map { (i: Int) -> Item in Item(id: 0x28 + i, name: "Optical In \(i + 1)") }
         list += (0..<16).map { (i: Int) -> Item in Item(id: 0xC0 + i, name: "DAW \(i + 1)") }
-        list += [Item(id: 0x40, name: "Mixer 1 L"), Item(id: 0x41, name: "Mixer 1 R"),
-                 Item(id: 0x60, name: "Mixer 2 L"), Item(id: 0x61, name: "Mixer 2 R")]
+        list += [Item(id: busA, name: "Bus A L"), Item(id: busA + 1, name: "Bus A R"),
+                 Item(id: busB, name: "Bus B L"), Item(id: busB + 1, name: "Bus B R")]
         return list
     }()
 
@@ -32,7 +37,7 @@ enum Names {
     /// Stereo source pairs a headphone can take directly, by the left channel's source ID.
     static let sourcePairs: [Item] = {
         var list = (0..<8).map { (i: Int) -> Item in Item(id: 0xC0 + 2 * i, name: "DAW \(2 * i + 1)–\(2 * i + 2)") }
-        list += [Item(id: 0x40, name: "Mixer 1"), Item(id: 0x60, name: "Mixer 2")]
+        list = [Item(id: busA, name: "Bus A"), Item(id: busB, name: "Bus B")] + list
         list += (0..<4).map { (i: Int) -> Item in Item(id: 0x20 + 2 * i, name: "Analog In \(2 * i + 1)–\(2 * i + 2)") }
         list += (0..<4).map { (i: Int) -> Item in Item(id: 0x28 + 2 * i, name: "Optical In \(2 * i + 1)–\(2 * i + 2)") }
         return list
